@@ -1,40 +1,293 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Welcome to Emulation!</title>
-  <style>
-    body {
-      background-color: #111;
-      color: #eee;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      margin: 0;
-    }
-    h1 {
-      color: #00bfff;
-      font-size: 3rem;
-      margin-bottom: 0.5em;
-    }
-    p {
-      font-size: 1.2rem;
-    }
-    .footer {
-      position: absolute;
-      bottom: 20px;
-      font-size: 0.9rem;
-      color: #666;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="sandbox allow-pointer-lock">
+    <title>3D FPS Shooter with Mod Menu</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        canvas { display: block; }
+        #crosshair { position: absolute; top: 50%; left: 50%; width: 10px; height: 10px; background: white; transform: translate(-50%, -50%); }
+        #fovCircle { position: absolute; top: 50%; left: 50%; border: 2px solid red; border-radius: 50%; pointer-events: none; display: none; transform: translate(-50%, -50%); }
+        #modMenu { position: absolute; top: 10px; left: 10px; background: rgba(0, 0, 0, 0.8); color: white; padding: 10px; display: none; }
+        #health { position: absolute; top: 10px; right: 10px; color: white; font-family: Arial; }
+        .esp-box { position: absolute; border: 2px solid green; pointer-events: none; }
+        #errorMessage { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(255, 0, 0, 0.8); color: white; padding: 20px; display: none; text-align: center; }
+    </style>
 </head>
 <body>
-  <h1>Hello from Emulation!</h1>
-  <p>This is your live website powered by GitHub Pages.</p>
-  <div class="footer">Emulation-REal &copy; 2025</div>
+    <div id="crosshair">+</div>
+    <div id="fovCircle"></div>
+    <div id="modMenu">
+        <h3>Mod Menu</h3>
+        <label><input type="checkbox" id="aimbotToggle"> Aimbot</label><br>
+        <label>FOV: <input type="range" id="fovSlider" min="50" max="500" value="200"></label><br>
+        <label><input type="checkbox" id="tracersToggle"> Tracers</label><br>
+        <label><input type="checkbox" id="espToggle"> ESP</label>
+    </div>
+    <div id="health">Health: 100</div>
+    <div id="errorMessage">Pointer lock failed. Run the game locally using a server like `http-server` or host on a platform like Netlify/Vercel. Click and drag to look around.</div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <script>
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // Player setup
+        camera.position.set(0, 1.6, 5);
+        let playerHealth = 100;
+        const healthDisplay = document.getElementById('health');
+        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+        const playerSpeed = 0.1;
+
+        // Mod menu setup
+        const modMenu = document.getElementById('modMenu');
+        const aimbotToggle = document.getElementById('aimbotToggle');
+        const fovSlider = document.getElementById('fovSlider');
+        const fovCircle = document.getElementById('fovCircle');
+        const tracersToggle = document.getElementById('tracersToggle');
+        const espToggle = document.getElementById('espToggle');
+        let aimbotEnabled = false, tracersEnabled = false, espEnabled = false;
+        let fovRadius = 200;
+
+        // Ground
+        const groundGeometry = new THREE.PlaneGeometry(100, 100);
+        const groundMaterial = new THREE.MeshBasicMaterial({ color: 0x555555 });
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2;
+        scene.add(ground);
+
+        // Enemies
+        const enemies = [];
+        const enemyGeometry = new THREE.BoxGeometry(1, 2, 1);
+        const enemyMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        for (let i = 0; i < 5; i++) {
+            const enemy = new THREE.Mesh(enemyGeometry, enemyMaterial);
+            enemy.position.set(
+                (Math.random() - 0.5) * 50,
+                1,
+                (Math.random() - 0.5) * 50
+            );
+            scene.add(enemy);
+            enemies.push({ mesh: enemy, health: 50 });
+        }
+
+        // Tracers
+        const tracerMaterial = new THREE.LineBasicMaterial({ color: 0xffff00 });
+        const tracers = [];
+
+        // ESP boxes
+        const espBoxes = [];
+
+        // Mouse look
+        let yaw = 0, pitch = 0;
+        const mouseSensitivity = 0.002;
+        let isDragging = false;
+        let pointerLockSupported = true;
+
+        // Pointer lock handling
+        renderer.domElement.addEventListener('click', () => {
+            if (pointerLockSupported) {
+                try {
+                    renderer.domElement.requestPointerLock();
+                } catch (e) {
+                    console.error('Pointer lock failed:', e);
+                    document.getElementById('errorMessage').style.display = 'block';
+                    pointerLockSupported = false;
+                }
+            } else {
+                isDragging = true;
+            }
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (document.pointerLockElement === renderer.domElement) {
+                yaw -= e.movementX * mouseSensitivity;
+                pitch -= e.movementY * mouseSensitivity;
+                pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pitch));
+                camera.rotation.set(pitch, yaw, 0);
+            } else if (isDragging) {
+                yaw -= e.movementX * mouseSensitivity;
+                pitch -= e.movementY * mouseSensitivity;
+                pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pitch));
+                camera.rotation.set(pitch, yaw, 0);
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (!pointerLockSupported) isDragging = false;
+        });
+
+        document.addEventListener('pointerlockerror', () => {
+            document.getElementById('errorMessage').style.display = 'block';
+            pointerLockSupported = false;
+        });
+
+        // Keyboard controls
+        document.addEventListener('keydown', (e) => {
+            switch (e.code) {
+                case 'KeyW': moveForward = true; break;
+                case 'KeyS': moveBackward = true; break;
+                case 'KeyA': moveLeft = true; break;
+                case 'KeyD': moveRight = true; break;
+                case 'Semicolon': modMenu.style.display = modMenu.style.display === 'none' ? 'block' : 'none'; break;
+            }
+        });
+        document.addEventListener('keyup', (e) => {
+            switch (e.code) {
+                case 'KeyW': moveForward = false; break;
+                case 'KeyS': moveBackward = false; break;
+                case 'KeyA': moveLeft = false; break;
+                case 'KeyD': moveRight = false; break;
+            }
+        });
+
+        // Shooting and aimbot
+        document.addEventListener('mousedown', (e) => {
+            if (e.button === 0 && (document.pointerLockElement === renderer.domElement || !pointerLockSupported)) {
+                // Shoot
+                const raycaster = new THREE.Raycaster();
+                raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+                const intersects = raycaster.intersectObjects(enemies.map(e => e.mesh));
+                if (intersects.length > 0) {
+                    const enemy = enemies.find(e => e.mesh === intersects[0].object);
+                    enemy.health -= 25;
+                    if (enemy.health <= 0) {
+                        scene.remove(enemy.mesh);
+                        enemies.splice(enemies.indexOf(enemy), 1);
+                        const espBox = espBoxes.find(box => box.enemy === enemy);
+                        if (espBox) {
+                            document.body.removeChild(espBox.element);
+                            espBoxes.splice(espBoxes.indexOf(espBox), 1);
+                        }
+                    }
+                }
+                // Tracer
+                if (tracersEnabled) {
+                    const tracerGeometry = new THREE.BufferGeometry().setFromPoints([
+                        camera.position,
+                        raycaster.ray.origin.clone().add(raycaster.ray.direction.clone().multiplyScalar(50))
+                    ]);
+                    const tracer = new THREE.Line(tracerGeometry, tracerMaterial);
+                    scene.add(tracer);
+                    tracers.push(tracer);
+                    setTimeout(() => {
+                        scene.remove(tracer);
+                        tracers.splice(tracers.indexOf(tracer), 1);
+                    }, 100);
+                }
+            } else if (e.button === 2 && aimbotEnabled) {
+                // Aimbot
+                const raycaster = new THREE.Raycaster();
+                raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+                let closestEnemy = null;
+                let minScreenDist = fovRadius;
+                enemies.forEach(enemy => {
+                    const screenPos = toScreenPosition(enemy.mesh, camera, renderer);
+                    const dx = screenPos.x - window.innerWidth / 2;
+                    const dy = screenPos.y - window.innerHeight / 2;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < minScreenDist) {
+                        minScreenDist = dist;
+                        closestEnemy = enemy;
+                    }
+                });
+                if (closestEnemy) {
+                    const direction = closestEnemy.mesh.position.clone().sub(camera.position).normalize();
+                    yaw = Math.atan2(direction.x, direction.z);
+                    pitch = Math.asin(direction.y);
+                    camera.rotation.set(pitch, yaw, 0);
+                }
+            }
+        });
+
+        // Mod menu controls
+        aimbotToggle.addEventListener('change', () => {
+            aimbotEnabled = aimbotToggle.checked;
+            fovCircle.style.display = aimbotEnabled ? 'block' : 'none';
+        });
+        fovSlider.addEventListener('input', () => {
+            fovRadius = fovSlider.value;
+            fovCircle.style.width = fovRadius * 2 + 'px';
+            fovCircle.style.height = fovRadius * 2 + 'px';
+        });
+        tracersToggle.addEventListener('change', () => tracersEnabled = tracersToggle.checked);
+        espToggle.addEventListener('change', () => {
+            espEnabled = espToggle.checked;
+            espBoxes.forEach(box => box.element.style.display = espEnabled ? 'block' : 'none');
+        });
+
+        // Convert 3D position to 2D screen coordinates
+        function toScreenPosition(obj, camera, renderer) {
+            const vector = new THREE.Vector3();
+            obj.updateMatrixWorld();
+            vector.setFromMatrixPosition(obj.matrixWorld);
+            vector.project(camera);
+            return {
+                x: (vector.x * 0.5 + 0.5) * renderer.domElement.width,
+                y: (-vector.y * 0.5 + 0.5) * renderer.domElement.height
+            };
+        }
+
+        // Game loop
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Player movement
+            const direction = new THREE.Vector3();
+            camera.getWorldDirection(direction);
+            direction.y = 0;
+            direction.normalize();
+            const sideDirection = new THREE.Vector3(-direction.z, 0, direction.x);
+            if (moveForward) camera.position.addScaledVector(direction, playerSpeed);
+            if (moveBackward) camera.position.addScaledVector(direction, -playerSpeed);
+            if (moveLeft) camera.position.addScaledVector(sideDirection, -playerSpeed);
+            if (moveRight) camera.position.addScaledVector(sideDirection, playerSpeed);
+
+            // Enemy movement and collision
+            enemies.forEach(enemy => {
+                const directionToPlayer = camera.position.clone().sub(enemy.mesh.position).normalize();
+                enemy.mesh.position.addScaledVector(directionToPlayer, 0.05);
+                if (enemy.mesh.position.distanceTo(camera.position) < 1) {
+                    playerHealth -= 1;
+                    healthDisplay.textContent = `Health: ${playerHealth}`;
+                    if (playerHealth <= 0) {
+                        alert('Game Over!');
+                        playerHealth = 100;
+                        healthDisplay.textContent = `Health: ${playerHealth}`;
+                    }
+                }
+                // Update ESP boxes
+                if (espEnabled) {
+                    let espBox = espBoxes.find(box => box.enemy === enemy);
+                    if (!espBox) {
+                        espBox = { enemy, element: document.createElement('div') };
+                        espBox.element.className = 'esp-box';
+                        document.body.appendChild(espBox.element);
+                        espBoxes.push(espBox);
+                    }
+                    const screenPos = toScreenPosition(enemy.mesh, camera, renderer);
+                    espBox.element.style.left = (screenPos.x - 25) + 'px';
+                    espBox.element.style.top = (screenPos.y - 50) + 'px';
+                    espBox.element.style.width = '50px';
+                    espBox.element.style.height = '100px';
+                    espBox.element.style.display = 'block';
+                }
+            });
+
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
 </body>
 </html>
