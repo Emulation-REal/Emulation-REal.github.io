@@ -6,14 +6,14 @@
     <meta http-equiv="Content-Security-Policy" content="sandbox allow-pointer-lock">
     <title>3D FPS Shooter with Mod Menu</title>
     <style>
-        body { margin: 0; overflow: hidden; }
+        body { margin: 0; overflow: hidden; background: #000; }
         canvas { display: block; }
-        #crosshair { position: absolute; top: 50%; left: 50%; width: 10px; height: 10px; background: white; transform: translate(-50%, -50%); }
-        #fovCircle { position: absolute; top: 50%; left: 50%; border: 2px solid red; border-radius: 50%; pointer-events: none; display: none; transform: translate(-50%, -50%); }
-        #modMenu { position: absolute; top: 10px; left: 10px; background: rgba(0, 0, 0, 0.8); color: white; padding: 10px; display: none; }
-        #health { position: absolute; top: 10px; right: 10px; color: white; font-family: Arial; }
-        .esp-box { position: absolute; border: 2px solid green; pointer-events: none; }
-        #errorMessage { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(255, 0, 0, 0.8); color: white; padding: 20px; display: none; text-align: center; }
+        #crosshair { position: absolute; top: 50%; left: 50%; width: 10px; height: 10px; color: white; font-size: 20px; text-align: center; line-height: 10px; transform: translate(-50%, -50%); pointer-events: none; }
+        #fovCircle { position: absolute; top: 50%; left: 50%; border: 2px solid rgba(255, 0, 0, 0.5); border-radius: 50%; pointer-events: none; display: none; transform: translate(-50%, -50%); }
+        #modMenu { position: absolute; top: 10px; left: 10px; background: rgba(0, 0, 0, 0.9); color: white; padding: 15px; border-radius: 5px; font-family: Arial; display: none; }
+        #health { position: absolute; top: 10px; right: 10px; color: white; font-family: Arial; font-size: 20px; background: rgba(0, 0, 0, 0.5); padding: 5px; border-radius: 3px; }
+        .esp-box { position: absolute; border: 2px solid lime; pointer-events: none; background: rgba(0, 255, 0, 0.1); }
+        #errorMessage { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(255, 0, 0, 0.9); color: white; padding: 20px; border-radius: 5px; font-family: Arial; display: none; text-align: center; }
     </style>
 </head>
 <body>
@@ -27,12 +27,12 @@
         <label><input type="checkbox" id="espToggle"> ESP</label>
     </div>
     <div id="health">Health: 100</div>
-    <div id="errorMessage">Pointer lock failed. Run the game locally using a server like `http-server` or host on a platform like Netlify/Vercel. Click and drag to look around.</div>
+    <div id="errorMessage">Pointer lock failed. Run locally using `http-server` or host on Netlify/Vercel. Click and drag to look around.</div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
     <script>
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer();
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
@@ -41,7 +41,7 @@
         let playerHealth = 100;
         const healthDisplay = document.getElementById('health');
         let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
-        const playerSpeed = 0.1;
+        const playerSpeed = 0.15;
 
         // Mod menu setup
         const modMenu = document.getElementById('modMenu');
@@ -53,26 +53,32 @@
         let aimbotEnabled = false, tracersEnabled = false, espEnabled = false;
         let fovRadius = 200;
 
-        // Ground
+        // Environment
         const groundGeometry = new THREE.PlaneGeometry(100, 100);
-        const groundMaterial = new THREE.MeshBasicMaterial({ color: 0x555555 });
+        const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.8 });
         const ground = new THREE.Mesh(groundGeometry, groundMaterial);
         ground.rotation.x = -Math.PI / 2;
         scene.add(ground);
 
+        const ambientLight = new THREE.AmbientLight(0x404040);
+        scene.add(ambientLight);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+        directionalLight.position.set(5, 10, 7.5);
+        scene.add(directionalLight);
+
         // Enemies
         const enemies = [];
         const enemyGeometry = new THREE.BoxGeometry(1, 2, 1);
-        const enemyMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-        for (let i = 0; i < 5; i++) {
+        const enemyMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+        for (let i = 0; i < 8; i++) {
             const enemy = new THREE.Mesh(enemyGeometry, enemyMaterial);
             enemy.position.set(
-                (Math.random() - 0.5) * 50,
+                (Math.random() - 0.5) * 80,
                 1,
-                (Math.random() - 0.5) * 50
+                (Math.random() - 0.5) * 80
             );
             scene.add(enemy);
-            enemies.push({ mesh: enemy, health: 50 });
+            enemies.push({ mesh: enemy, health: 50, speed: 0.07 + Math.random() * 0.03 });
         }
 
         // Tracers
@@ -84,7 +90,7 @@
 
         // Mouse look
         let yaw = 0, pitch = 0;
-        const mouseSensitivity = 0.002;
+        const mouseSensitivity = 0.003;
         let isDragging = false;
         let pointerLockSupported = true;
 
@@ -167,26 +173,23 @@
                 }
                 // Tracer
                 if (tracersEnabled) {
-                    const tracerGeometry = new THREE.BufferGeometry().setFromPoints([
-                        camera.position,
-                        raycaster.ray.origin.clone().add(raycaster.ray.direction.clone().multiplyScalar(50))
-                    ]);
+                    const start = camera.position.clone();
+                    const end = start.clone().add(raycaster.ray.direction.clone().multiplyScalar(100));
+                    const tracerGeometry = new THREE.BufferGeometry().setFromPoints([start, end]);
                     const tracer = new THREE.Line(tracerGeometry, tracerMaterial);
                     scene.add(tracer);
                     tracers.push(tracer);
                     setTimeout(() => {
                         scene.remove(tracer);
                         tracers.splice(tracers.indexOf(tracer), 1);
-                    }, 100);
+                    }, 50);
                 }
             } else if (e.button === 2 && aimbotEnabled) {
                 // Aimbot
-                const raycaster = new THREE.Raycaster();
-                raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
                 let closestEnemy = null;
                 let minScreenDist = fovRadius;
                 enemies.forEach(enemy => {
-                    const screenPos = toScreenPosition(enemy.mesh, camera, renderer);
+                    const screenPos = toScreenPosition(enemy.mesh, camera);
                     const dx = screenPos.x - window.innerWidth / 2;
                     const dy = screenPos.y - window.innerHeight / 2;
                     const dist = Math.sqrt(dx * dx + dy * dy);
@@ -196,10 +199,13 @@
                     }
                 });
                 if (closestEnemy) {
-                    const direction = closestEnemy.mesh.position.clone().sub(camera.position).normalize();
-                    yaw = Math.atan2(direction.x, direction.z);
+                    const targetPos = closestEnemy.mesh.position.clone();
+                    const direction = targetPos.sub(camera.position).normalize();
+                    yaw = -Math.atan2(direction.x, direction.z);
                     pitch = Math.asin(direction.y);
-                    camera.rotation.set(pitch, yaw, 0);
+                    pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pitch));
+                    const targetQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(pitch, yaw, 0));
+                    camera.quaternion.slerp(targetQuat, 0.3);
                 }
             }
         });
@@ -210,7 +216,7 @@
             fovCircle.style.display = aimbotEnabled ? 'block' : 'none';
         });
         fovSlider.addEventListener('input', () => {
-            fovRadius = fovSlider.value;
+            fovRadius = parseInt(fovSlider.value);
             fovCircle.style.width = fovRadius * 2 + 'px';
             fovCircle.style.height = fovRadius * 2 + 'px';
         });
@@ -221,14 +227,26 @@
         });
 
         // Convert 3D position to 2D screen coordinates
-        function toScreenPosition(obj, camera, renderer) {
+        function toScreenPosition(obj, camera) {
             const vector = new THREE.Vector3();
+            const canvas = renderer.domElement;
             obj.updateMatrixWorld();
             vector.setFromMatrixPosition(obj.matrixWorld);
             vector.project(camera);
             return {
-                x: (vector.x * 0.5 + 0.5) * renderer.domElement.width,
-                y: (-vector.y * 0.5 + 0.5) * renderer.domElement.height
+                x: (vector.x * 0.5 + 0.5) * canvas.width,
+                y: (-vector.y * 0.5 + 0.5) * canvas.height
+            };
+        }
+
+        // Calculate ESP box size based on distance
+        function getEspBoxSize(distance) {
+            const minSize = 20;
+            const maxSize = 50;
+            const scale = Math.max(0.1, Math.min(1, 10 / distance));
+            return {
+                width: minSize + (maxSize - minSize) * scale,
+                height: (minSize + (maxSize - minSize) * scale) * 2
             };
         }
 
@@ -249,15 +267,25 @@
 
             // Enemy movement and collision
             enemies.forEach(enemy => {
-                const directionToPlayer = camera.position.clone().sub(enemy.mesh.position).normalize();
-                enemy.mesh.position.addScaledVector(directionToPlayer, 0.05);
-                if (enemy.mesh.position.distanceTo(camera.position) < 1) {
-                    playerHealth -= 1;
-                    healthDisplay.textContent = `Health: ${playerHealth}`;
+                const directionToPlayer = camera.position.clone().sub(enemy.mesh.position);
+                const distanceToPlayer = directionToPlayer.length();
+                directionToPlayer.normalize();
+                enemy.mesh.position.addScaledVector(directionToPlayer, enemy.speed);
+                if (distanceToPlayer < 1.5) {
+                    playerHealth -= 0.5;
+                    healthDisplay.textContent = `Health: ${Math.floor(playerHealth)}`;
                     if (playerHealth <= 0) {
                         alert('Game Over!');
                         playerHealth = 100;
                         healthDisplay.textContent = `Health: ${playerHealth}`;
+                        enemies.forEach(enemy => {
+                            enemy.mesh.position.set(
+                                (Math.random() - 0.5) * 80,
+                                1,
+                                (Math.random() - 0.5) * 80
+                            );
+                            enemy.health = 50;
+                        });
                     }
                 }
                 // Update ESP boxes
@@ -269,11 +297,13 @@
                         document.body.appendChild(espBox.element);
                         espBoxes.push(espBox);
                     }
-                    const screenPos = toScreenPosition(enemy.mesh, camera, renderer);
-                    espBox.element.style.left = (screenPos.x - 25) + 'px';
-                    espBox.element.style.top = (screenPos.y - 50) + 'px';
-                    espBox.element.style.width = '50px';
-                    espBox.element.style.height = '100px';
+                    const screenPos = toScreenPosition(enemy.mesh, camera);
+                    const distance = camera.position.distanceTo(enemy.mesh.position);
+                    const { width, height } = getEspBoxSize(distance);
+                    espBox.element.style.left = (screenPos.x - width / 2) + 'px';
+                    espBox.element.style.top = (screenPos.y - height / 2) + 'px';
+                    espBox.element.style.width = width + 'px';
+                    espBox.element.style.height = height + 'px';
                     espBox.element.style.display = 'block';
                 }
             });
