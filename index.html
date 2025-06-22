@@ -3,321 +3,409 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="sandbox allow-pointer-lock">
-    <title>3D FPS Shooter with Mod Menu</title>
+    <title>Talkomatic Pro</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; }
-        canvas { display: block; }
-        #crosshair { position: absolute; top: 50%; left: 50%; width: 10px; height: 10px; color: white; font-size: 20px; text-align: center; line-height: 10px; transform: translate(-50%, -50%); pointer-events: none; }
-        #fovCircle { position: absolute; top: 50%; left: 50%; border: 2px solid rgba(255, 0, 0, 0.5); border-radius: 50%; pointer-events: none; display: none; transform: translate(-50%, -50%); }
-        #modMenu { position: absolute; top: 10px; left: 10px; background: rgba(0, 0, 0, 0.9); color: white; padding: 15px; border-radius: 5px; font-family: Arial; display: none; }
-        #health { position: absolute; top: 10px; right: 10px; color: white; font-family: Arial; font-size: 20px; background: rgba(0, 0, 0, 0.5); padding: 5px; border-radius: 3px; }
-        .esp-box { position: absolute; border: 2px solid lime; pointer-events: none; background: rgba(0, 255, 0, 0.1); }
-        #errorMessage { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(255, 0, 0, 0.9); color: white; padding: 20px; border-radius: 5px; font-family: Arial; display: none; text-align: center; }
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #ffffff;
+            --accent-color: #00cc00;
+            --secondary-bg: #2c2c2c;
+            --border-color: #444444;
+        }
+        [data-theme="blue"] {
+            --accent-color: #00aaff;
+        }
+        [data-theme="purple"] {
+            --accent-color: #cc00ff;
+        }
+        [data-theme="red"] {
+            --accent-color: #ff4444;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+        #main-container {
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        #header {
+            background-color: var(--secondary-bg);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+        #header h1 {
+            margin: 0;
+            font-size: 28px;
+            color: var(--accent-color);
+        }
+        #controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            background-color: var(--secondary-bg);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+        #username-container, #server-container, #theme-container {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+        input, select, button {
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background-color: #333;
+            color: var(--text-color);
+            font-size: 14px;
+        }
+        button {
+            background-color: var(--accent-color);
+            color: #000;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #00b300;
+        }
+        #status {
+            color: var(--accent-color);
+            text-align: center;
+            margin: 10px 0;
+        }
+        #chat-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+        }
+        .user-chat {
+            width: 300px;
+            background-color: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+        .user-header {
+            padding: 10px;
+            background-color: #333;
+            border-bottom: 1px solid var(--border-color);
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .typing-indicator {
+            font-size: 12px;
+            color: #888;
+        }
+        .chat-display {
+            height: 200px;
+            padding: 10px;
+            overflow-y: auto;
+            background-color: #222;
+        }
+        .message {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        .message .content {
+            color: var(--text-color);
+        }
+        .chat-input {
+            display: flex;
+            padding: 10px;
+        }
+        .chat-input input {
+            flex-grow: 1;
+            border: none;
+            background-color: #333;
+        }
+        .chat-input button {
+            padding: 8px 12px;
+        }
+        @media (max-width: 600px) {
+            .user-chat {
+                width: 100%;
+            }
+            #controls {
+                flex-direction: column;
+            }
+        }
     </style>
 </head>
 <body>
-    <div id="crosshair">+</div>
-    <div id="fovCircle"></div>
-    <div id="modMenu">
-        <h3>Mod Menu</h3>
-        <label><input type="checkbox" id="aimbotToggle"> Aimbot</label><br>
-        <label>FOV: <input type="range" id="fovSlider" min="50" max="500" value="200"></label><br>
-        <label><input type="checkbox" id="tracersToggle"> Tracers</label><br>
-        <label><input type="checkbox" id="espToggle"> ESP</label>
+    <div id="main-container">
+        <div id="header">
+            <h1>Talkomatic Pro</h1>
+        </div>
+        <div id="controls">
+            <div id="username-container">
+                <input type="text" id="username-input" placeholder="Enter username">
+                <button id="set-username">Set Username</button>
+            </div>
+            <div id="server-container">
+                <input type="text" id="server-input" placeholder="Enter or create server ID">
+                <button id="join-server">Join/Create Server</button>
+            </div>
+            <div id="theme-container">
+                <select id="theme-select">
+                    <option value="green">Green</option>
+                    <option value="blue">Blue</option>
+                    <option value="purple">Purple</option>
+                    <option value="red">Red</option>
+                </select>
+            </div>
+        </div>
+        <div id="status">Connecting...</div>
+        <div id="chat-container"></div>
     </div>
-    <div id="health">Health: 100</div>
-    <div id="errorMessage">Pointer lock failed. Run locally using `http-server` or host on Netlify/Vercel. Click and drag to look around.</div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <script>
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
+        const chatContainer = document.getElementById('chat-container');
+        const usernameInput = document.getElementById('username-input');
+        const setUsernameButton = document.getElementById('set-username');
+        const serverInput = document.getElementById('server-input');
+        const joinServerButton = document.getElementById('join-server');
+        const themeSelect = document.getElementById('theme-select');
+        const status = document.getElementById('status');
+        const usernameContainer = document.getElementById('username-container');
 
-        // Player setup
-        camera.position.set(0, 1.6, 5);
-        let playerHealth = 100;
-        const healthDisplay = document.getElementById('health');
-        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
-        const playerSpeed = 0.15;
-
-        // Mod menu setup
-        const modMenu = document.getElementById('modMenu');
-        const aimbotToggle = document.getElementById('aimbotToggle');
-        const fovSlider = document.getElementById('fovSlider');
-        const fovCircle = document.getElementById('fovCircle');
-        const tracersToggle = document.getElementById('tracersToggle');
-        const espToggle = document.getElementById('espToggle');
-        let aimbotEnabled = false, tracersEnabled = false, espEnabled = false;
-        let fovRadius = 200;
-
-        // Environment
-        const groundGeometry = new THREE.PlaneGeometry(100, 100);
-        const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.8 });
-        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-        ground.rotation.x = -Math.PI / 2;
-        scene.add(ground);
-
-        const ambientLight = new THREE.AmbientLight(0x404040);
-        scene.add(ambientLight);
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
-        directionalLight.position.set(5, 10, 7.5);
-        scene.add(directionalLight);
-
-        // Enemies
-        const enemies = [];
-        const enemyGeometry = new THREE.BoxGeometry(1, 2, 1);
-        const enemyMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000 });
-        for (let i = 0; i < 8; i++) {
-            const enemy = new THREE.Mesh(enemyGeometry, enemyMaterial);
-            enemy.position.set(
-                (Math.random() - 0.5) * 80,
-                1,
-                (Math.random() - 0.5) * 80
-            );
-            scene.add(enemy);
-            enemies.push({ mesh: enemy, health: 50, speed: 0.07 + Math.random() * 0.03 });
+        // Generate or retrieve user ID
+        let userId = localStorage.getItem('userId');
+        if (!userId) {
+            userId = 'user-' + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem('userId', userId);
         }
 
-        // Tracers
-        const tracerMaterial = new THREE.LineBasicMaterial({ color: 0xffff00 });
-        const tracers = [];
+        let username = localStorage.getItem('username') || 'Anonymous';
+        let currentServer = localStorage.getItem('currentServer') || null;
+        let peer = null;
+        let connections = {};
+        let typingTimeouts = {};
 
-        // ESP boxes
-        const espBoxes = [];
+        // Initialize PeerJS
+        function initPeer() {
+            peer = new Peer(userId, {
+                host: 'peerjs-server.herokuapp.com',
+                secure: true,
+                port: 443
+            });
 
-        // Mouse look
-        let yaw = 0, pitch = 0;
-        const mouseSensitivity = 0.003;
-        let isDragging = false;
-        let pointerLockSupported = true;
-
-        // Pointer lock handling
-        renderer.domElement.addEventListener('click', () => {
-            if (pointerLockSupported) {
-                try {
-                    renderer.domElement.requestPointerLock();
-                } catch (e) {
-                    console.error('Pointer lock failed:', e);
-                    document.getElementById('errorMessage').style.display = 'block';
-                    pointerLockSupported = false;
-                }
-            } else {
-                isDragging = true;
-            }
-        });
-
-        document.addEventListener('mousemove', (e) => {
-            if (document.pointerLockElement === renderer.domElement) {
-                yaw -= e.movementX * mouseSensitivity;
-                pitch -= e.movementY * mouseSensitivity;
-                pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pitch));
-                camera.rotation.set(pitch, yaw, 0);
-            } else if (isDragging) {
-                yaw -= e.movementX * mouseSensitivity;
-                pitch -= e.movementY * mouseSensitivity;
-                pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pitch));
-                camera.rotation.set(pitch, yaw, 0);
-            }
-        });
-
-        document.addEventListener('mouseup', () => {
-            if (!pointerLockSupported) isDragging = false;
-        });
-
-        document.addEventListener('pointerlockerror', () => {
-            document.getElementById('errorMessage').style.display = 'block';
-            pointerLockSupported = false;
-        });
-
-        // Keyboard controls
-        document.addEventListener('keydown', (e) => {
-            switch (e.code) {
-                case 'KeyW': moveForward = true; break;
-                case 'KeyS': moveBackward = true; break;
-                case 'KeyA': moveLeft = true; break;
-                case 'KeyD': moveRight = true; break;
-                case 'Semicolon': modMenu.style.display = modMenu.style.display === 'none' ? 'block' : 'none'; break;
-            }
-        });
-        document.addEventListener('keyup', (e) => {
-            switch (e.code) {
-                case 'KeyW': moveForward = false; break;
-                case 'KeyS': moveBackward = false; break;
-                case 'KeyA': moveLeft = false; break;
-                case 'KeyD': moveRight = false; break;
-            }
-        });
-
-        // Shooting and aimbot
-        document.addEventListener('mousedown', (e) => {
-            if (e.button === 0 && (document.pointerLockElement === renderer.domElement || !pointerLockSupported)) {
-                // Shoot
-                const raycaster = new THREE.Raycaster();
-                raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-                const intersects = raycaster.intersectObjects(enemies.map(e => e.mesh));
-                if (intersects.length > 0) {
-                    const enemy = enemies.find(e => e.mesh === intersects[0].object);
-                    enemy.health -= 25;
-                    if (enemy.health <= 0) {
-                        scene.remove(enemy.mesh);
-                        enemies.splice(enemies.indexOf(enemy), 1);
-                        const espBox = espBoxes.find(box => box.enemy === enemy);
-                        if (espBox) {
-                            document.body.removeChild(espBox.element);
-                            espBoxes.splice(espBoxes.indexOf(espBox), 1);
-                        }
-                    }
-                }
-                // Tracer
-                if (tracersEnabled) {
-                    const start = camera.position.clone();
-                    const end = start.clone().add(raycaster.ray.direction.clone().multiplyScalar(100));
-                    const tracerGeometry = new THREE.BufferGeometry().setFromPoints([start, end]);
-                    const tracer = new THREE.Line(tracerGeometry, tracerMaterial);
-                    scene.add(tracer);
-                    tracers.push(tracer);
-                    setTimeout(() => {
-                        scene.remove(tracer);
-                        tracers.splice(tracers.indexOf(tracer), 1);
-                    }, 50);
-                }
-            } else if (e.button === 2 && aimbotEnabled) {
-                // Aimbot
-                let closestEnemy = null;
-                let minScreenDist = fovRadius;
-                enemies.forEach(enemy => {
-                    const screenPos = toScreenPosition(enemy.mesh, camera);
-                    const dx = screenPos.x - window.innerWidth / 2;
-                    const dy = screenPos.y - window.innerHeight / 2;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-                    if (dist < minScreenDist) {
-                        minScreenDist = dist;
-                        closestEnemy = enemy;
-                    }
-                });
-                if (closestEnemy) {
-                    const targetPos = closestEnemy.mesh.position.clone();
-                    const direction = targetPos.sub(camera.position).normalize();
-                    yaw = -Math.atan2(direction.x, direction.z);
-                    pitch = Math.asin(direction.y);
-                    pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pitch));
-                    const targetQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(pitch, yaw, 0));
-                    camera.quaternion.slerp(targetQuat, 0.3);
-                }
-            }
-        });
-
-        // Mod menu controls
-        aimbotToggle.addEventListener('change', () => {
-            aimbotEnabled = aimbotToggle.checked;
-            fovCircle.style.display = aimbotEnabled ? 'block' : 'none';
-        });
-        fovSlider.addEventListener('input', () => {
-            fovRadius = parseInt(fovSlider.value);
-            fovCircle.style.width = fovRadius * 2 + 'px';
-            fovCircle.style.height = fovRadius * 2 + 'px';
-        });
-        tracersToggle.addEventListener('change', () => tracersEnabled = tracersToggle.checked);
-        espToggle.addEventListener('change', () => {
-            espEnabled = espToggle.checked;
-            espBoxes.forEach(box => box.element.style.display = espEnabled ? 'block' : 'none');
-        });
-
-        // Convert 3D position to 2D screen coordinates
-        function toScreenPosition(obj, camera) {
-            const vector = new THREE.Vector3();
-            const canvas = renderer.domElement;
-            obj.updateMatrixWorld();
-            vector.setFromMatrixPosition(obj.matrixWorld);
-            vector.project(camera);
-            return {
-                x: (vector.x * 0.5 + 0.5) * canvas.width,
-                y: (-vector.y * 0.5 + 0.5) * canvas.height
-            };
-        }
-
-        // Calculate ESP box size based on distance
-        function getEspBoxSize(distance) {
-            const minSize = 20;
-            const maxSize = 50;
-            const scale = Math.max(0.1, Math.min(1, 10 / distance));
-            return {
-                width: minSize + (maxSize - minSize) * scale,
-                height: (minSize + (maxSize - minSize) * scale) * 2
-            };
-        }
-
-        // Game loop
-        function animate() {
-            requestAnimationFrame(animate);
-
-            // Player movement
-            const direction = new THREE.Vector3();
-            camera.getWorldDirection(direction);
-            direction.y = 0;
-            direction.normalize();
-            const sideDirection = new THREE.Vector3(-direction.z, 0, direction.x);
-            if (moveForward) camera.position.addScaledVector(direction, playerSpeed);
-            if (moveBackward) camera.position.addScaledVector(direction, -playerSpeed);
-            if (moveLeft) camera.position.addScaledVector(sideDirection, -playerSpeed);
-            if (moveRight) camera.position.addScaledVector(sideDirection, playerSpeed);
-
-            // Enemy movement and collision
-            enemies.forEach(enemy => {
-                const directionToPlayer = camera.position.clone().sub(enemy.mesh.position);
-                const distanceToPlayer = directionToPlayer.length();
-                directionToPlayer.normalize();
-                enemy.mesh.position.addScaledVector(directionToPlayer, enemy.speed);
-                if (distanceToPlayer < 1.5) {
-                    playerHealth -= 0.5;
-                    healthDisplay.textContent = `Health: ${Math.floor(playerHealth)}`;
-                    if (playerHealth <= 0) {
-                        alert('Game Over!');
-                        playerHealth = 100;
-                        healthDisplay.textContent = `Health: ${playerHealth}`;
-                        enemies.forEach(enemy => {
-                            enemy.mesh.position.set(
-                                (Math.random() - 0.5) * 80,
-                                1,
-                                (Math.random() - 0.5) * 80
-                            );
-                            enemy.health = 50;
-                        });
-                    }
-                }
-                // Update ESP boxes
-                if (espEnabled) {
-                    let espBox = espBoxes.find(box => box.enemy === enemy);
-                    if (!espBox) {
-                        espBox = { enemy, element: document.createElement('div') };
-                        espBox.element.className = 'esp-box';
-                        document.body.appendChild(espBox.element);
-                        espBoxes.push(espBox);
-                    }
-                    const screenPos = toScreenPosition(enemy.mesh, camera);
-                    const distance = camera.position.distanceTo(enemy.mesh.position);
-                    const { width, height } = getEspBoxSize(distance);
-                    espBox.element.style.left = (screenPos.x - width / 2) + 'px';
-                    espBox.element.style.top = (screenPos.y - height / 2) + 'px';
-                    espBox.element.style.width = width + 'px';
-                    espBox.element.style.height = height + 'px';
-                    espBox.element.style.display = 'block';
+            peer.on('open', (id) => {
+                status.textContent = `Connected as ${username} (${id.slice(0, 8)})`;
+                if (currentServer) {
+                    joinServer(currentServer);
                 }
             });
 
-            renderer.render(scene, camera);
-        }
-        animate();
+            peer.on('connection', (conn) => {
+                setupConnection(conn);
+            });
 
-        // Handle window resize
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+            peer.on('error', (err) => {
+                status.textContent = `Error: ${err.type}`;
+                console.error(err);
+            });
+        }
+
+        // Create user chat box
+        function createChatBox(peerId, peerUsername) {
+            if (document.getElementById(`chat-${peerId}`)) return;
+            const userChat = document.createElement('div');
+            userChat.classList.add('user-chat');
+            userChat.id = `chat-${peerId}`;
+            userChat.innerHTML = `
+                <div class="user-header">
+                    <span>${peerUsername} (${peerId.slice(0, 8)})</span>
+                    <span class="typing-indicator" id="typing-${peerId}"></span>
+                </div>
+                <div class="chat-display" id="display-${peerId}"></div>
+                <div class="chat-input">
+                    <input type="text" id="input-${peerId}" placeholder="Type a message...">
+                    <button onclick="sendMessage('${peerId}')">Send</button>
+                </div>
+            `;
+            chatContainer.appendChild(userChat);
+            const input = document.getElementById(`input-${peerId}`);
+            input.addEventListener('input', () => sendTypingIndicator(peerId));
+            return userChat;
+        }
+
+        // Setup connection
+        function setupConnection(conn) {
+            const peerId = conn.peer;
+            if (!connections[peerId]) {
+                connections[peerId] = conn;
+                conn.on('data', (data) => {
+                    if (data.type === 'message') {
+                        displayMessage(peerId, data);
+                        broadcastMessage(data, peerId);
+                    } else if (data.type === 'typing') {
+                        showTypingIndicator(peerId);
+                    } else if (data.type === 'username') {
+                        updateUsername(peerId, data.username);
+                    }
+                });
+                conn.on('close', () => {
+                    delete connections[peerId];
+                    const chatBox = document.getElementById(`chat-${peerId}`);
+                    if (chatBox) chatBox.remove();
+                    status.textContent = `Connected peers: ${Object.keys(connections).length}`;
+                });
+                createChatBox(peerId, data.username || 'Anonymous');
+                status.textContent = `Connected peers: ${Object.keys(connections).length}`;
+                // Send current username
+                conn.send({ type: 'username', username });
+            }
+        }
+
+        // Join or create server
+        function joinServer(serverId) {
+            currentServer = serverId;
+            localStorage.setItem('currentServer', serverId);
+            const knownPeers = JSON.parse(localStorage.getItem(`peers_${serverId}`) || '[]');
+            knownPeers.forEach(peerId => {
+                if (peerId !== userId && !connections[peerId]) {
+                    const conn = peer.connect(peerId);
+                    conn.on('open', () => {
+                        setupConnection(conn);
+                    });
+                }
+            });
+            serverInput.value = serverId;
+        }
+
+        // Display message
+        function displayMessage(peerId, data) {
+            const display = document.getElementById(`display-${peerId}`);
+            if (display) {
+                const messageElement = document.createElement('div');
+                messageElement.classList.add('message');
+                messageElement.innerHTML = `<span class="content">${data.message}</span>`;
+                display.appendChild(messageElement);
+                display.scrollTop = display.scrollHeight;
+            }
+        }
+
+        // Broadcast message
+        function broadcastMessage(data, senderId) {
+            Object.keys(connections).forEach(peerId => {
+                if (peerId !== senderId) {
+                    connections[peerId].send(data);
+                }
+            });
+        }
+
+        // Send message
+        window.sendMessage = (peerId) => {
+            const input = document.getElementById(`input-${peerId}`);
+            const message = input.value.trim();
+            if (message && connections[peerId]) {
+                const data = { type: 'message', userId, username, message };
+                displayMessage(peerId, data);
+                connections[peerId].send(data);
+                broadcastMessage(data, peerId);
+                input.value = '';
+                // Update known peers
+                if (currentServer) {
+                    const knownPeers = [...new Set([...JSON.parse(localStorage.getItem(`peers_${currentServer}`) || '[]'), peerId])];
+                    localStorage.setItem(`peers_${currentServer}`, JSON.stringify(knownPeers));
+                }
+            }
+        };
+
+        // Send typing indicator
+        function sendTypingIndicator(peerId) {
+            if (connections[peerId]) {
+                connections[peerId].send({ type: 'typing', userId });
+                clearTimeout(typingTimeouts[peerId]);
+                typingTimeouts[peerId] = setTimeout(() => {
+                    const typing = document.getElementById(`typing-${peerId}`);
+                    if (typing) typing.textContent = '';
+                }, 2000);
+            }
+        }
+
+        // Show typing indicator
+        function showTypingIndicator(peerId) {
+            const typing = document.getElementById(`typing-${peerId}`);
+            if (typing) {
+                typing.textContent = 'Typing...';
+                clearTimeout(typingTimeouts[peerId]);
+                typingTimeouts[peerId] = setTimeout(() => {
+                    typing.textContent = '';
+                }, 2000);
+            }
+        }
+
+        // Update username
+        function updateUsername(peerId, newUsername) {
+            const header = document.querySelector(`#chat-${peerId} .user-header span`);
+            if (header) {
+                header.textContent = `${newUsername} (${peerId.slice(0, 8)})`;
+            }
+        }
+
+        // Set username
+        setUsernameButton.addEventListener('click', () => {
+            const newUsername = usernameInput.value.trim();
+            if (newUsername) {
+                username = newUsername;
+                localStorage.setItem('username', username);
+                usernameContainer.style.display = 'none';
+                status.textContent = `Connected as ${username} (${userId.slice(0, 8)})`;
+                Object.values(connections).forEach(conn => {
+                    conn.send({ type: 'username', username });
+                });
+            }
         });
+
+        // Join server
+        joinServerButton.addEventListener('click', () => {
+            const serverId = serverInput.value.trim();
+            if (serverId) {
+                joinServer(serverId);
+            }
+        });
+
+        // Theme selection
+        themeSelect.addEventListener('change', () => {
+            document.body.setAttribute('data-theme', themeSelect.value);
+            localStorage.setItem('theme', themeSelect.value);
+        });
+
+        // Load saved theme
+        const savedTheme = localStorage.getItem('theme') || 'green';
+        themeSelect.value = savedTheme;
+        document.body.setAttribute('data-theme', savedTheme);
+
+        // Hide username input if set
+        if (localStorage.getItem('username')) {
+            usernameContainer.style.display = 'none';
+        }
+
+        // Initialize PeerJS
+        initPeer();
     </script>
 </body>
 </html>
