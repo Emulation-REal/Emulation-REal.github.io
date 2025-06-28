@@ -2,410 +2,685 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Talkomatic Pro</title>
+    <title>Random Shooter 2D</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
     <style>
-        :root {
-            --bg-color: #1a1a1a;
-            --text-color: #ffffff;
-            --accent-color: #00cc00;
-            --secondary-bg: #2c2c2c;
-            --border-color: #444444;
-        }
-        [data-theme="blue"] {
-            --accent-color: #00aaff;
-        }
-        [data-theme="purple"] {
-            --accent-color: #cc00ff;
-        }
-        [data-theme="red"] {
-            --accent-color: #ff4444;
-        }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-            box-sizing: border-box;
-        }
-        #main-container {
-            width: 100%;
-            max-width: 1200px;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-        #header {
-            background-color: var(--secondary-bg);
-            padding: 15px;
-            border-radius: 8px;
-            text-align: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-        }
-        #header h1 {
-            margin: 0;
-            font-size: 28px;
-            color: var(--accent-color);
-        }
-        #controls {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            justify-content: center;
-            background-color: var(--secondary-bg);
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-        }
-        #username-container, #server-container, #theme-container {
-            display: flex;
-            gap: 5px;
-            align-items: center;
-        }
-        input, select, button {
-            padding: 8px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            background-color: #333;
-            color: var(--text-color);
-            font-size: 14px;
-        }
-        button {
-            background-color: var(--accent-color);
-            color: #000;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        button:hover {
-            background-color: #00b300;
-        }
-        #status {
-            color: var(--accent-color);
-            text-align: center;
-            margin: 10px 0;
-        }
-        #chat-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            justify-content: center;
-        }
-        .user-chat {
-            width: 300px;
-            background-color: var(--secondary-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-        }
-        .user-header {
-            padding: 10px;
-            background-color: #333;
-            border-bottom: 1px solid var(--border-color);
-            font-weight: bold;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .typing-indicator {
-            font-size: 12px;
-            color: #888;
-        }
-        .chat-display {
-            height: 200px;
-            padding: 10px;
-            overflow-y: auto;
-            background-color: #222;
-        }
-        .message {
-            margin: 5px 0;
-            font-size: 14px;
-        }
-        .message .content {
-            color: var(--text-color);
-        }
-        .chat-input {
-            display: flex;
-            padding: 10px;
-        }
-        .chat-input input {
-            flex-grow: 1;
-            border: none;
-            background-color: #333;
-        }
-        .chat-input button {
-            padding: 8px 12px;
-        }
-        @media (max-width: 600px) {
-            .user-chat {
-                width: 100%;
-            }
-            #controls {
-                flex-direction: column;
-            }
-        }
+        body { margin: 0; overflow: hidden; }
+        canvas { display: block; }
+        #startScreen, #modMenu { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: Arial; }
+        #startScreen input, #startScreen button, #modMenu input, #modMenu button, #modMenu select { margin: 10px; padding: 10px; font-size: 16px; }
+        #startScreen button, #modMenu button { cursor: pointer; background: #4CAF50; border: none; color: white; }
+        #startScreen button:hover, #modMenu button:hover { background: #45a049; }
+        #colorPicker { display: flex; gap: 10px; }
+        .colorOption { width: 40px; height: 40px; border: 2px solid #fff; cursor: pointer; }
+        #modMenu { display: none; }
+        #modMenu label { display: flex; align-items: center; gap: 10px; }
+        #modMenu select { background: #333; color: white; border: 1px solid #fff; }
     </style>
 </head>
 <body>
-    <div id="main-container">
-        <div id="header">
-            <h1>Talkomatic Pro</h1>
-        </div>
-        <div id="controls">
-            <div id="username-container">
-                <input type="text" id="username-input" placeholder="Enter username">
-                <button id="set-username">Set Username</button>
-            </div>
-            <div id="server-container">
-                <input type="text" id="server-input" placeholder="Enter or create server ID">
-                <button id="join-server">Join/Create Server</button>
-            </div>
-            <div id="theme-container">
-                <select id="theme-select">
-                    <option value="green">Green</option>
-                    <option value="blue">Blue</option>
-                    <option value="purple">Purple</option>
-                    <option value="red">Red</option>
-                </select>
-            </div>
-        </div>
-        <div id="status">Connecting...</div>
-        <div id="chat-container"></div>
+<div id="startScreen">
+    <h1>2D Fighting Game</h1>
+    <input type="text" id="username" placeholder="Enter Username" maxlength="15">
+    <h3>Choose Your Color</h3>
+    <div id="colorPicker">
+        <div class="colorOption" style="background-color: rgb(50, 50, 255);" onclick="selectColor('50,50,255')"></div>
+        <div class="colorOption" style="background-color: rgb(255, 50, 50);" onclick="selectColor('255,50,50')"></div>
+        <div class="colorOption" style="background-color: rgb(50, 255, 50);" onclick="selectColor('50,255,50')"></div>
+        <div class="colorOption" style="background-color: rgb(255, 255, 50);" onclick="selectColor('255,255,50')"></div>
     </div>
+    <button onclick="startGame()">Start Game</button>
+</div>
+<div id="modMenu">
+    <h1>Mod Menu (Press M to Toggle)</h1>
+    <label><input type="checkbox" id="aimbotMod" onchange="toggleMod('aimbot', this.checked)"> Aimbot (Hold RMB)</label>
+    <label><input type="checkbox" id="tracersMod" onchange="toggleMod('tracers', this.checked)"> Tracers to Enemies</label>
+    <label>Tracer Color: <select id="tracerColor" onchange="setTracerColor(this.value)">
+        <option value="255,0,0">Red</option>
+        <option value="0,255,0">Green</option>
+        <option value="0,0,255">Blue</option>
+        <option value="255,255,0">Yellow</option>
+        <option value="rainbow">Rainbow</option>
+    </select></label>
+    <label><input type="checkbox" id="godModeMod" onchange="toggleMod('godMode', this.checked)"> God Mode</label>
+    <label><input type="checkbox" id="infiniteAmmoMod" onchange="toggleMod('infiniteAmmo', this.checked)"> Infinite Ammo</label>
+    <label><input type="checkbox" id="speedHackMod" onchange="toggleMod('speedHack', this.checked)"> Speed Hack</label>
+    <label>Speed Multiplier: <input type="range" id="speedMultiplier" min="1" max="5" value="1" step="0.5" onchange="setSpeedMultiplier(this.value)"></label>
+    <label><input type="checkbox" id="damageMultiplierMod" onchange="toggleMod('damageMultiplier', this.checked)"> Damage Multiplier</label>
+    <label>Damage Multiplier: <input type="range" id="damageMultiplier" min="1" max="5" value="1" step="0.5" onchange="setDamageMultiplier(this.value)"></label>
+    <label><input type="checkbox" id="espMod" onchange="toggleMod('esp', this.checked)"> ESP (Enemy Highlight)</label>
+    <label><input type="checkbox" id="rapidFireMod" onchange="toggleMod('rapidFire', this.checked)"> Rapid Fire</label>
+    <label><input type="checkbox" id="wallhackMod" onchange="toggleMod('wallhack', this.checked)"> Wallhack</label>
+    <label><input type="checkbox" id="autoReloadMod" onchange="toggleMod('autoReload', this.checked)"> Auto-Reload</label>
+    <label><input type="checkbox" id="healthRegenMod" onchange="toggleMod('healthRegen', this.checked)"> Health Regen</label>
+    <label><input type="checkbox" id="enemyFreezeMod" onchange="toggleMod('enemyFreeze', this.checked)"> Enemy Freeze</label>
+    <label><input type="checkbox" id="fovMod" onchange="toggleMod('fov', this.checked)"> FOV Increase</label>
+    <label>FOV Multiplier: <input type="range" id="fovMultiplier" min="0.5" max="2" value="1" step="0.1" onchange="setFovMultiplier(this.value)"></label>
+    <button onclick="closeModMenu()">Close Menu</button>
+</div>
+<script>
+let player;
+let enemies = [];
+let bullets = [];
+let powerUps = [];
+let terrain = [];
+let particles = [];
+let mapWidth = 4000;
+let mapHeight = 3000;
+let cameraX = 0;
+let cameraY = 0;
+let gameState = 'loading';
+let loadingStartTime;
+let playerColor = '50,50,255';
+let username = 'Player';
+let selectedColor = '50,50,255';
+let mods = {
+    aimbot: false,
+    tracers: false,
+    godMode: false,
+    infiniteAmmo: false,
+    speedHack: false,
+    damageMultiplier: false,
+    esp: false,
+    rapidFire: false,
+    wallhack: false,
+    autoReload: false,
+    healthRegen: false,
+    enemyFreeze: false,
+    fov: false
+};
+let modSettings = {
+    tracerColor: '255,0,0',
+    speedMultiplier: 1,
+    damageMultiplier: 1,
+    fovMultiplier: 1
+};
+let modMenuOpen = false;
+let lastShotTime = 0;
+let feedbackText = '';
+let feedbackTimer = 0;
 
-    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
-    <script>
-        const chatContainer = document.getElementById('chat-container');
-        const usernameInput = document.getElementById('username-input');
-        const setUsernameButton = document.getElementById('set-username');
-        const serverInput = document.getElementById('server-input');
-        const joinServerButton = document.getElementById('join-server');
-        const themeSelect = document.getElementById('theme-select');
-        const status = document.getElementById('status');
-        const usernameContainer = document.getElementById('username-container');
+function selectColor(rgb) {
+    selectedColor = rgb;
+}
 
-        // Generate or retrieve user ID
-        let userId = localStorage.getItem('userId');
-        if (!userId) {
-            userId = 'user-' + Math.random().toString(36).substr(2, 9);
-            localStorage.setItem('userId', userId);
-        }
+function startGame() {
+    let input = document.getElementById('username');
+    username = input.value.trim() || 'Player';
+    document.getElementById('startScreen').style.display = 'none';
+    gameState = 'playing';
+}
 
-        let username = localStorage.getItem('username') || 'Anonymous';
-        let currentServer = localStorage.getItem('currentServer') || null;
-        let peer = null;
-        let connections = {};
-        let typingTimeouts = {};
+function toggleMod(mod, enabled) {
+    mods[mod] = enabled;
+}
 
-        // Initialize PeerJS
-        function initPeer() {
-            peer = new Peer(userId, {
-                host: 'peerjs-server.herokuapp.com',
-                secure: true,
-                port: 443
-            });
+function setTracerColor(color) {
+    modSettings.tracerColor = color;
+}
 
-            peer.on('open', (id) => {
-                status.textContent = `Connected as ${username} (${id.slice(0, 8)})`;
-                if (currentServer) {
-                    joinServer(currentServer);
-                }
-            });
+function setSpeedMultiplier(value) {
+    modSettings.speedMultiplier = parseFloat(value);
+}
 
-            peer.on('connection', (conn) => {
-                setupConnection(conn);
-            });
+function setDamageMultiplier(value) {
+    modSettings.damageMultiplier = parseFloat(value);
+}
 
-            peer.on('error', (err) => {
-                status.textContent = `Error: ${err.type}`;
-                console.error(err);
-            });
-        }
+function setFovMultiplier(value) {
+    modSettings.fovMultiplier = parseFloat(value);
+}
 
-        // Create user chat box
-        function createChatBox(peerId, peerUsername) {
-            if (document.getElementById(`chat-${peerId}`)) return;
-            const userChat = document.createElement('div');
-            userChat.classList.add('user-chat');
-            userChat.id = `chat-${peerId}`;
-            userChat.innerHTML = `
-                <div class="user-header">
-                    <span>${peerUsername} (${peerId.slice(0, 8)})</span>
-                    <span class="typing-indicator" id="typing-${peerId}"></span>
-                </div>
-                <div class="chat-display" id="display-${peerId}"></div>
-                <div class="chat-input">
-                    <input type="text" id="input-${peerId}" placeholder="Type a message...">
-                    <button onclick="sendMessage('${peerId}')">Send</button>
-                </div>
-            `;
-            chatContainer.appendChild(userChat);
-            const input = document.getElementById(`input-${peerId}`);
-            input.addEventListener('input', () => sendTypingIndicator(peerId));
-            return userChat;
-        }
+function closeModMenu() {
+    modMenuOpen = false;
+    document.getElementById('modMenu').style.display = 'none';
+}
 
-        // Setup connection
-        function setupConnection(conn) {
-            const peerId = conn.peer;
-            if (!connections[peerId]) {
-                connections[peerId] = conn;
-                conn.on('data', (data) => {
-                    if (data.type === 'message') {
-                        displayMessage(peerId, data);
-                        broadcastMessage(data, peerId);
-                    } else if (data.type === 'typing') {
-                        showTypingIndicator(peerId);
-                    } else if (data.type === 'username') {
-                        updateUsername(peerId, data.username);
+function copyPlayerImage() {
+    let tempCanvas = createGraphics(player.size * 2, player.size * 2);
+    tempCanvas.push();
+    tempCanvas.translate(player.size, player.size);
+    tempCanvas.rotate(player.angle);
+    tempCanvas.fill(player.col);
+    tempCanvas.ellipse(0, 0, player.size);
+    tempCanvas.fill(0);
+    if (player.weapon === 'pistol') {
+        tempCanvas.rect(player.size / 2 - 10, -5, 20, 10);
+    } else if (player.weapon === 'shotgun') {
+        tempCanvas.rect(player.size / 2 - 15, -10, 30, 20);
+    }
+    tempCanvas.fill(255, 0, 0);
+    tempCanvas.rect(-player.size / 2, player.size / 2, player.size * (player.health / 100), 5);
+    if (player.shield) {
+        tempCanvas.noFill();
+        tempCanvas.stroke(0, 255, 255);
+        tempCanvas.ellipse(0, 0, player.size + 10);
+    }
+    tempCanvas.pop();
+    tempCanvas.canvas.toBlob(blob => {
+        navigator.clipboard.write([
+            new ClipboardItem({ 'image/png': blob })
+        ]).catch(err => console.error('Failed to copy image:', err));
+    });
+}
+
+class Fighter {
+    constructor(x, y, size, col, isPlayer, type = 'roamer') {
+        this.x = x;
+        this.y = y;
+        this.size = size;
+        this.col = col;
+        this.isPlayer = isPlayer;
+        this.type = type;
+        this.baseSpeed = isPlayer ? 5 : type === 'tank' ? 2 : 3;
+        this.speed = this.baseSpeed;
+        this.angle = 0;
+        this.health = isPlayer ? 100 : type === 'tank' ? 200 : 100;
+        this.targetX = random(mapWidth);
+        this.targetY = random(mapHeight);
+        this.changeTargetTimer = random(60, 120);
+        this.weapon = isPlayer ? 'pistol' : 'none';
+        this.baseDamage = isPlayer ? 20 : type === 'tank' ? 15 : 10;
+        this.damage = this.baseDamage;
+        this.bulletSpeed = 10;
+        this.score = 0;
+        this.ammo = isPlayer ? { pistol: 30, shotgun: 15 } : {};
+        this.maxAmmo = { pistol: 30, shotgun: 15 };
+        this.shield = false;
+        this.damageBoost = false;
+        this.damageBoostTimer = 0;
+    }
+
+    update() {
+        if (this.isPlayer) {
+            let dx = 0, dy = 0;
+            if (keyIsDown(65)) dx -= this.speed; // A key (left)
+            if (keyIsDown(68)) dx += this.speed; // D key (right)
+            if (keyIsDown(87)) dy -= this.speed; // W key (up)
+            if (keyIsDown(83)) dy += this.speed; // S key (down)
+            let newX = constrain(this.x + dx, 0, mapWidth);
+            let newY = constrain(this.y + dy, 0, mapHeight);
+            if (!this.collides(newX, newY)) {
+                this.x = newX;
+                this.y = newY;
+            }
+            if (mods.aimbot && mouseIsPressed && mouseButton === RIGHT) {
+                let nearestEnemy = null;
+                let minDist = Infinity;
+                for (let enemy of enemies) {
+                    let d = dist(this.x, this.y, enemy.x, enemy.y);
+                    if (d < minDist) {
+                        minDist = d;
+                        nearestEnemy = enemy;
                     }
-                });
-                conn.on('close', () => {
-                    delete connections[peerId];
-                    const chatBox = document.getElementById(`chat-${peerId}`);
-                    if (chatBox) chatBox.remove();
-                    status.textContent = `Connected peers: ${Object.keys(connections).length}`;
-                });
-                createChatBox(peerId, data.username || 'Anonymous');
-                status.textContent = `Connected peers: ${Object.keys(connections).length}`;
-                // Send current username
-                conn.send({ type: 'username', username });
-            }
-        }
-
-        // Join or create server
-        function joinServer(serverId) {
-            currentServer = serverId;
-            localStorage.setItem('currentServer', serverId);
-            const knownPeers = JSON.parse(localStorage.getItem(`peers_${serverId}`) || '[]');
-            knownPeers.forEach(peerId => {
-                if (peerId !== userId && !connections[peerId]) {
-                    const conn = peer.connect(peerId);
-                    conn.on('open', () => {
-                        setupConnection(conn);
-                    });
                 }
-            });
-            serverInput.value = serverId;
-        }
-
-        // Display message
-        function displayMessage(peerId, data) {
-            const display = document.getElementById(`display-${peerId}`);
-            if (display) {
-                const messageElement = document.createElement('div');
-                messageElement.classList.add('message');
-                messageElement.innerHTML = `<span class="content">${data.message}</span>`;
-                display.appendChild(messageElement);
-                display.scrollTop = display.scrollHeight;
-            }
-        }
-
-        // Broadcast message
-        function broadcastMessage(data, senderId) {
-            Object.keys(connections).forEach(peerId => {
-                if (peerId !== senderId) {
-                    connections[peerId].send(data);
+                if (nearestEnemy) {
+                    this.angle = atan2(nearestEnemy.y - this.y, nearestEnemy.x - this.x);
+                    this.shoot();
                 }
-            });
+            } else {
+                this.angle = atan2(mouseY + cameraY - this.y, mouseX + cameraX - this.x);
+            }
+            this.speed = mods.speedHack ? this.baseSpeed * modSettings.speedMultiplier : this.baseSpeed;
+            this.damage = mods.damageMultiplier ? this.baseDamage * modSettings.damageMultiplier : this.baseDamage;
+            if (this.damageBoost && millis() - this.damageBoostTimer > 10000) {
+                this.damageBoost = false;
+            }
+            if (mods.healthRegen && frameCount % 60 === 0) {
+                this.health = min(this.health + 5, 100);
+            }
+            if (mods.autoReload && this.ammo[this.weapon] === 0) {
+                this.reload();
+            }
         }
+    }
 
-        // Send message
-        window.sendMessage = (peerId) => {
-            const input = document.getElementById(`input-${peerId}`);
-            const message = input.value.trim();
-            if (message && connections[peerId]) {
-                const data = { type: 'message', userId, username, message };
-                displayMessage(peerId, data);
-                connections[peerId].send(data);
-                broadcastMessage(data, peerId);
-                input.value = '';
-                // Update known peers
-                if (currentServer) {
-                    const knownPeers = [...new Set([...JSON.parse(localStorage.getItem(`peers_${currentServer}`) || '[]'), peerId])];
-                    localStorage.setItem(`peers_${currentServer}`, JSON.stringify(knownPeers));
+    aiMove(player) {
+        if (mods.enemyFreeze) return;
+        if (this.type === 'roamer') {
+            this.changeTargetTimer--;
+            if (this.changeTargetTimer <= 0) {
+                this.targetX = random(mapWidth);
+                this.targetY = random(mapHeight);
+                this.changeTargetTimer = random(60, 120);
+            }
+            let angle = atan2(this.targetY - this.y, this.targetX - this.x);
+            let newX = this.x + cos(angle) * this.speed * 0.5;
+            let newY = this.y + sin(angle) * this.speed * 0.5;
+            if (!this.collides(newX, newY)) {
+                this.x = newX;
+                this.y = newY;
+            }
+            this.angle = angle;
+        } else if (this.type === 'chaser') {
+            let angle = atan2(player.y - this.y, player.x - this.x);
+            let newX = this.x + cos(angle) * this.speed;
+            let newY = this.y + sin(angle) * this.speed;
+            if (!this.collides(newX, newY)) {
+                this.x = newX;
+                this.y = newY;
+            }
+            this.angle = angle;
+        } else if (this.type === 'sniper') {
+            this.angle = atan2(player.y - this.y, player.x - this.x);
+        } else if (this.type === 'bomber') {
+            let angle = atan2(player.y - this.y, player.x - this.x);
+            let newX = this.x + cos(angle) * this.speed * 0.7;
+            let newY = this.y + sin(angle) * this.speed * 0.7;
+            if (!this.collides(newX, newY)) {
+                this.x = newX;
+                this.y = newY;
+            }
+            this.angle = angle;
+        } else if (this.type === 'tank') {
+            let angle = atan2(player.y - this.y, player.x - this.x);
+            let newX = this.x + cos(angle) * this.speed;
+            let newY = this.y + sin(angle) * this.speed;
+            if (!this.collides(newX, newY)) {
+                this.x = newX;
+                this.y = newY;
+            }
+            this.angle = angle;
+            if (dist(player.x, player.y, this.x, this.y) < 100 && frameCount % 60 === 0) {
+                player.takeDamage(15);
+            }
+        }
+    }
+
+    collides(x, y) {
+        for (let t of terrain) {
+            if (x + this.size / 2 > t.x && x - this.size / 2 < t.x + t.w &&
+                y + this.size / 2 > t.y && y - this.size / 2 < t.y + t.h) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    show() {
+        push();
+        translate(this.x, this.y);
+        rotate(this.angle);
+        if (mods.esp && !this.isPlayer) {
+            stroke(255, 255, 0);
+            strokeWeight(3);
+            fill(this.col);
+            ellipse(0, 0, this.size + 5);
+            noStroke();
+        } else {
+            fill(this.col);
+            ellipse(0, 0, this.size);
+        }
+        fill(0);
+        if (this.weapon === 'pistol') {
+            rect(this.size / 2 - 10, -5, 20, 10);
+        } else if (this.weapon === 'shotgun') {
+            rect(this.size / 2 - 15, -10, 30, 20);
+        }
+        fill(255, 0, 0);
+        rect(-this.size / 2, this.size / 2, this.size * (this.health / 100), 5);
+        if (this.shield) {
+            noFill();
+            stroke(0, 255, 255);
+            ellipse(0, 0, this.size + 10);
+            noStroke();
+        }
+        pop();
+        if (!this.isPlayer) {
+            fill(255);
+            textSize(12);
+            textAlign(CENTER);
+            text(this.type.charAt(0).toUpperCase() + this.type.slice(1), this.x, this.y - this.size / 2 - 10);
+        }
+    }
+
+    takeDamage(amount) {
+        if (this.isPlayer && (mods.godMode || this.shield)) {
+            if (this.shield) this.shield = false;
+            return;
+        }
+        this.health -= amount;
+        if (this.isPlayer && this.health <= 0) {
+            this.health = 100;
+            this.x = mapWidth / 2;
+            this.y = mapHeight / 2;
+            this.ammo = { pistol: 30, shotgun: 15 };
+            this.shield = false;
+            this.damageBoost = false;
+        } else if (!this.isPlayer && this.health <= 0 && this.type === 'bomber') {
+            for (let i = 0; i < 20; i++) {
+                particles.push(new Particle(this.x, this.y, random(TWO_PI), random(2, 5)));
+            }
+            if (dist(this.x, this.y, player.x, player.y) < 100) {
+                player.takeDamage(30);
+            }
+        }
+        if (!this.isPlayer && this.health <= 0) {
+            let scoreGain = 100 * (mods.damageMultiplier ? modSettings.damageMultiplier : 1);
+            player.score += scoreGain;
+        }
+    }
+
+    setWeapon(weapon, damage, bulletSpeed) {
+        this.weapon = weapon;
+        this.baseDamage = damage;
+        this.damage = mods.damageMultiplier ? this.baseDamage * modSettings.damageMultiplier : this.baseDamage;
+        this.bulletSpeed = bulletSpeed;
+    }
+
+    shoot() {
+        let cooldown = mods.rapidFire ? 50 : 200;
+        if ((this.ammo[this.weapon] > 0 || mods.infiniteAmmo) && millis() - lastShotTime > cooldown) {
+            bullets.push(new Bullet(this.x, this.y, this.angle, true));
+            if (!mods.infiniteAmmo) {
+                this.ammo[this.weapon]--;
+            }
+            lastShotTime = millis();
+            feedbackText = 'Shot!';
+            feedbackTimer = millis();
+        }
+    }
+
+    reload() {
+        this.ammo[this.weapon] = this.maxAmmo[this.weapon];
+        feedbackText = 'Reloaded!';
+        feedbackTimer = millis();
+    }
+}
+
+class Bullet {
+    constructor(x, y, angle, isPlayerBullet) {
+        this.x = x;
+        this.y = y;
+        this.angle = angle;
+        this.speed = isPlayerBullet ? (player.weapon === 'pistol' ? 10 : 5) : 8;
+        this.isPlayerBullet = isPlayerBullet;
+        this.col = isPlayerBullet ? color(0, 0, 255) : color(255, 0, 0);
+    }
+
+    update() {
+        this.x += cos(this.angle) * this.speed;
+        this.y += sin(this.angle) * this.speed;
+    }
+
+    show() {
+        fill(this.col);
+        ellipse(this.x, this.y, 10);
+    }
+
+    offscreen() {
+        return this.x < 0 || this.x > mapWidth || this.y < 0 || this.y > mapHeight;
+    }
+}
+
+class PowerUp {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.type = random(['health', 'speed', 'damage', 'shield', 'ammo']);
+        this.size = 20;
+    }
+
+    show() {
+        fill(this.type === 'health' ? color(255, 100, 100) : this.type === 'speed' ? color(100, 100, 255) : this.type === 'damage' ? color(255, 50, 255) : this.type === 'shield' ? color(0, 255, 255) : color(200, 200, 200));
+        ellipse(this.x, this.y, this.size);
+        fill(0);
+        textAlign(CENTER, CENTER);
+        textSize(12);
+        text(this.type === 'health' ? 'H' : this.type === 'speed' ? 'S' : this.type === 'damage' ? 'D' : this.type === 'shield' ? 'SH' : 'A', this.x, this.y);
+    }
+
+    collect(player) {
+        if (dist(this.x, this.y, player.x, player.y) < this.size + player.size / 2) {
+            if (this.type === 'health') {
+                player.health = min(player.health + 50, 100);
+            } else if (this.type === 'speed') {
+                player.speed = min(player.speed + 2, 10);
+                setTimeout(() => player.speed = max(player.speed - 2, 5), 5000);
+            } else if (this.type === 'damage') {
+                player.damageBoost = true;
+                player.damageBoostTimer = millis();
+            } else if (this.type === 'shield') {
+                player.shield = true;
+            } else if (this.type === 'ammo') {
+                player.ammo = { pistol: player.maxAmmo.pistol, shotgun: player.maxAmmo.shotgun };
+            }
+            player.score += 100 * (mods.damageMultiplier ? modSettings.damageMultiplier : 1);
+            feedbackText = `${this.type.charAt(0).toUpperCase() + this.type.slice(1)} Collected!`;
+            feedbackTimer = millis();
+            return true;
+        }
+        return false;
+    }
+}
+
+class Particle {
+    constructor(x, y, angle, speed) {
+        this.x =
+
+x;
+        this.y = y;
+        this.angle = angle;
+        this.speed = speed;
+        this.life = 30;
+    }
+
+    update() {
+        this.x += cos(this.angle) * this.speed;
+        this.y += sin(this.angle) * this.speed;
+        this.life--;
+    }
+
+    show() {
+        fill(255, 100, 0, map(this.life, 0, 30, 0, 255));
+        ellipse(this.x, this.y, 5);
+    }
+}
+
+function setup() {
+    createCanvas(windowWidth, windowHeight);
+    loadingStartTime = millis();
+    playerColor = color(...selectedColor.split(',').map(Number));
+}
+
+function windowResized() {
+    resizeCanvas(windowWidth, windowHeight);
+}
+
+function draw() {
+    if (gameState === 'loading') {
+        background(0);
+        fill(255);
+        textSize(32);
+        textAlign(CENTER, CENTER);
+        text('Loading...', width / 2, height / 2);
+        if (millis() - loadingStartTime > 2000) {
+            gameState = 'start';
+            player = new Fighter(mapWidth / 2, mapHeight / 2, 40, playerColor, true);
+            for (let i = 0; i < 18; i++) {
+                let type = random(['roamer', 'chaser', 'sniper', 'bomber', 'tank']);
+                enemies.push(new Fighter(random(mapWidth), random(mapHeight), type === 'tank' ? 60 : 40, type === 'roamer' ? color(255, 50, 50) : type === 'chaser' ? color(50, 255, 50) : type === 'sniper' ? color(255, 255, 50) : type === 'bomber' ? color(255, 100, 0) : color(100, 100, 100), false, type));
+            }
+            for (let i = 0; i < 40; i++) {
+                terrain.push({x: random(mapWidth), y: random(mapHeight), w: random(30, 100), h: random(30, 100)});
+            }
+            for (let i = 0; i < 10; i++) {
+                powerUps.push(new PowerUp(random(mapWidth), random(mapHeight)));
+            }
+        }
+    } else if (gameState === 'start') {
+        // Start screen handled by HTML
+    } else if (gameState === 'playing') {
+        // Apply FOV scaling
+        let fovScale = mods.fov ? modSettings.fovMultiplier : 1;
+        let scaledWidth = windowWidth / fovScale;
+        let scaledHeight = windowHeight / fovScale;
+        background(100, 150, 100);
+        // Draw dynamic lighting (gradient around player)
+        let gradient = drawingContext.createRadialGradient(player.x - cameraX, player.y - cameraY, 0, player.x - cameraX, player.y - cameraY, 300);
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 0.2)');
+        gradient.addColorStop(1, 'rgba(0, 0, 0, 0.5)');
+        drawingContext.fillStyle = gradient;
+        drawingContext.fillRect(cameraX, cameraY, scaledWidth, scaledHeight);
+        // Draw grid background
+        stroke(255, 255, 255, 50);
+        for (let x = 0; x < mapWidth; x += 50) {
+            line(x, 0, x, mapHeight);
+        }
+        for (let y = 0; y < mapHeight; y += 50) {
+            line(0, y, mapWidth, y);
+        }
+        noStroke();
+        cameraX = constrain(player.x - scaledWidth / 2, 0, mapWidth - scaledWidth);
+        cameraY = constrain(player.y - scaledHeight / 2, 0, mapHeight - scaledHeight);
+        push();
+        translate(-cameraX, -cameraY);
+        scale(fovScale);
+        // Draw terrain
+        fill(150, 100, 50, mods.wallhack ? 100 : 255);
+        for (let t of terrain) {
+            rect(t.x, t.y, t.w, t.h);
+        }
+        // Draw tracers
+        if (mods.tracers) {
+            strokeWeight(2);
+            if (modSettings.tracerColor === 'rainbow') {
+                let hue = (millis() % 2000) / 2000 * 360;
+                stroke(color(`hsl(${hue}, 100%, 50%)`));
+            } else {
+                stroke(...modSettings.tracerColor.split(',').map(Number), 100);
+            }
+            for (let enemy of enemies) {
+                line(player.x, player.y, enemy.x, enemy.y);
+            }
+            noStroke();
+        }
+        // Update and display power-ups
+        for (let i = powerUps.length - 1; i >= 0; i--) {
+            powerUps[i].show();
+            if (powerUps[i].collect(player)) {
+                powerUps.splice(i, 1);
+                powerUps.push(new PowerUp(random(mapWidth), random(mapHeight)));
+            }
+        }
+        // Update and display player
+        player.update();
+        player.show();
+        // Update and display enemies
+        for (let i = enemies.length - 1; i >= 0; i--) {
+            let enemy = enemies[i];
+            enemy.aiMove(player);
+            enemy.update();
+            enemy.show();
+            if (enemy.type === 'sniper' && dist(player.x, player.y, enemy.x, enemy.y) < 300 && frameCount % 90 === 0 && !mods.enemyFreeze) {
+                bullets.push(new Bullet(enemy.x, enemy.y, atan2(player.y - enemy.y, player.x - enemy.x), false));
+            } else if (dist(player.x, player.y, enemy.x, enemy.y) < 60 && frameCount % 60 === 0 && !mods.enemyFreeze) {
+                player.takeDamage(enemy.type === 'tank' ? 15 : 10);
+            }
+            if (dist(player.x, player.y, enemy.x, enemy.y) < 60 && frameCount % 60 === 0) {
+                let damage = player.damageBoost ? player.damage * 2 : player.damage;
+                enemy.takeDamage(damage);
+                if (enemy.health <= 0) {
+                    enemies.splice(i, 1);
+                    enemies.push(new Fighter(random(mapWidth), random(mapHeight), random(['roamer', 'chaser', 'sniper', 'bomber', 'tank']) === 'tank' ? 60 : 40, random(['roamer', 'chaser', 'sniper', 'bomber', 'tank']) === 'roamer' ? color(255, 50, 50) : random(['roamer', 'chaser', 'sniper', 'bomber', 'tank']) === 'chaser' ? color(50, 255, 50) : random(['roamer', 'chaser', 'sniper', 'bomber', 'tank']) === 'sniper' ? color(255, 255, 50) : random(['roamer', 'chaser', 'sniper', 'bomber', 'tank']) === 'bomber' ? color(255, 100, 0) : color(100, 100, 100), false, random(['roamer', 'chaser', 'sniper', 'bomber', 'tank'])));
                 }
             }
-        };
-
-        // Send typing indicator
-        function sendTypingIndicator(peerId) {
-            if (connections[peerId]) {
-                connections[peerId].send({ type: 'typing', userId });
-                clearTimeout(typingTimeouts[peerId]);
-                typingTimeouts[peerId] = setTimeout(() => {
-                    const typing = document.getElementById(`typing-${peerId}`);
-                    if (typing) typing.textContent = '';
-                }, 2000);
+        }
+        // Update and display bullets
+        for (let i = bullets.length - 1; i >= 0; i--) {
+            bullets[i].update();
+            bullets[i].show();
+            if (bullets[i].offscreen()) {
+                bullets.splice(i, 1);
+                continue;
+            }
+            let hitTerrain = false;
+            for (let t of terrain) {
+                if (bullets[i].x > t.x && bullets[i].x < t.x + t.w && bullets[i].y > t.y && bullets[i].y < t.y + t.h) {
+                    for (let j = 0; j < 5; j++) {
+                        particles.push(new Particle(bullets[i].x, bullets[i].y, random(TWO_PI), random(1, 3)));
+                    }
+                    bullets.splice(i, 1);
+                    hitTerrain = true;
+                    break;
+                }
+            }
+            if (hitTerrain) continue;
+            if (bullets[i].isPlayerBullet) {
+                for (let enemy of enemies) {
+                    if (dist(bullets[i].x, bullets[i].y, enemy.x, enemy.y) < 20) {
+                        let damage = player.damageBoost ? player.damage * 2 : player.damage;
+                        enemy.takeDamage(damage * 2);
+                        for (let j = 0; j < 5; j++) {
+                            particles.push(new Particle(bullets[i].x, bullets[i].y, random(TWO_PI), random(1, 3)));
+                        }
+                        bullets.splice(i, 1);
+                        if (enemy.health <= 0) {
+                            enemies.splice(enemies.indexOf(enemy), 1);
+                            enemies.push(new Fighter(random(mapWidth), random(mapHeight), random(['roamer', 'chaser', 'sniper', 'bomber', 'tank']) === 'tank' ? 60 : 40, random(['roamer', 'chaser', 'sniper', 'bomber', 'tank']) === 'roamer' ? color(255, 50, 50) : random(['roamer', 'chaser', 'sniper', 'bomber', 'tank']) === 'chaser' ? color(50, 255, 50) : random(['roamer', 'chaser', 'sniper', 'bomber', 'tank']) === 'sniper' ? color(255, 255, 50) : random(['roamer', 'chaser', 'sniper', 'bomber', 'tank']) === 'bomber' ? color(255, 100, 0) : color(100, 100, 100), false, random(['roamer', 'chaser', 'sniper', 'bomber', 'tank'])));
+                        }
+                        break;
+                    }
+                }
+            } else {
+                if (dist(bullets[i].x, bullets[i].y, player.x, player.y) < 20) {
+                    player.takeDamage(20);
+                    for (let j = 0; j < 5; j++) {
+                        particles.push(new Particle(bullets[i].x, bullets[i].y, random(TWO_PI), random(1, 3)));
+                    }
+                    bullets.splice(i, 1);
+                }
             }
         }
-
-        // Show typing indicator
-        function showTypingIndicator(peerId) {
-            const typing = document.getElementById(`typing-${peerId}`);
-            if (typing) {
-                typing.textContent = 'Typing...';
-                clearTimeout(typingTimeouts[peerId]);
-                typingTimeouts[peerId] = setTimeout(() => {
-                    typing.textContent = '';
-                }, 2000);
+        // Update and display particles
+        for (let i = particles.length - 1; i >= 0; i--) {
+            particles[i].update();
+            particles[i].show();
+            if (particles[i].life <= 0) {
+                particles.splice(i, 1);
             }
         }
-
-        // Update username
-        function updateUsername(peerId, newUsername) {
-            const header = document.querySelector(`#chat-${peerId} .user-header span`);
-            if (header) {
-                header.textContent = `${newUsername} (${peerId.slice(0, 8)})`;
-            }
+        pop();
+        // Display HUD
+        fill(255);
+        textSize(16);
+        text(`Health: ${player.health}`, 10, 20);
+        text(`Weapon: ${player.weapon}`, 10, 40);
+        text(`Ammo: ${player.ammo[player.weapon]}/${player.maxAmmo[player.weapon]}`, 10, 60);
+        text(`Score: ${player.score}`, 10, 80);
+        text(`Player: ${username}`, 10, 100);
+        if (player.shield) text('Shield: Active', 10, 120);
+        if (player.damageBoost) text('Damage Boost: Active', 10, 140);
+        if (feedbackText && millis() - feedbackTimer < 1000) {
+            text(feedbackText, width / 2, height - 50);
         }
+    }
+}
 
-        // Set username
-        setUsernameButton.addEventListener('click', () => {
-            const newUsername = usernameInput.value.trim();
-            if (newUsername) {
-                username = newUsername;
-                localStorage.setItem('username', username);
-                usernameContainer.style.display = 'none';
-                status.textContent = `Connected as ${username} (${userId.slice(0, 8)})`;
-                Object.values(connections).forEach(conn => {
-                    conn.send({ type: 'username', username });
-                });
-            }
-        });
-
-        // Join server
-        joinServerButton.addEventListener('click', () => {
-            const serverId = serverInput.value.trim();
-            if (serverId) {
-                joinServer(serverId);
-            }
-        });
-
-        // Theme selection
-        themeSelect.addEventListener('change', () => {
-            document.body.setAttribute('data-theme', themeSelect.value);
-            localStorage.setItem('theme', themeSelect.value);
-        });
-
-        // Load saved theme
-        const savedTheme = localStorage.getItem('theme') || 'green';
-        themeSelect.value = savedTheme;
-        document.body.setAttribute('data-theme', savedTheme);
-
-        // Hide username input if set
-        if (localStorage.getItem('username')) {
-            usernameContainer.style.display = 'none';
+function mousePressed() {
+    if (gameState === 'playing' && !modMenuOpen) {
+        if (mouseButton === LEFT) {
+            player.shoot();
+        } else if (mouseButton === RIGHT && !mods.aimbot) {
+            copyPlayerImage();
         }
+    }
+}
 
-        // Initialize PeerJS
-        initPeer();
-    </script>
+function keyPressed() {
+    if (gameState === 'playing') {
+        if (key === 'm' || key === 'M') {
+            modMenuOpen = !modMenuOpen;
+            document.getElementById('modMenu').style.display = modMenuOpen ? 'flex' : 'none';
+        } else if (key === '1') {
+            player.setWeapon('pistol', 20, 10);
+        } else if (key === '2') {
+            player.setWeapon('shotgun', 40, 5);
+        } else if (key === 'r' || key === 'R') {
+            player.reload();
+        }
+    }
+}
+</script>
 </body>
 </html>
