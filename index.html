@@ -2,25 +2,102 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Random Shooter 2D</title>
+    <title>Enhanced 2D Fighting Game</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
     <style>
         body { margin: 0; overflow: hidden; }
         canvas { display: block; }
-        #startScreen, #modMenu { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: Arial; }
-        #startScreen input, #startScreen button, #modMenu input, #modMenu button, #modMenu select { margin: 10px; padding: 10px; font-size: 16px; }
-        #startScreen button, #modMenu button { cursor: pointer; background: #4CAF50; border: none; color: white; }
-        #startScreen button:hover, #modMenu button:hover { background: #45a049; }
-        #colorPicker { display: flex; gap: 10px; }
-        .colorOption { width: 40px; height: 40px; border: 2px solid #fff; cursor: pointer; }
+        #startScreen, #modMenu { 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: linear-gradient(45deg, #1a1a1a, #4a235a); 
+            color: white; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            font-family: 'Arial', sans-serif; 
+            animation: gradientShift 5s ease infinite;
+        }
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        #startScreen h1, #modMenu h1 { 
+            font-size: 48px; 
+            text-shadow: 0 0 10px #0ff; 
+            animation: pulse 2s infinite; 
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        #startScreen input, #startScreen button, #modMenu input, #modMenu button, #modMenu select { 
+            margin: 15px; 
+            padding: 12px; 
+            font-size: 18px; 
+            border-radius: 5px; 
+            border: none; 
+        }
+        #startScreen input { 
+            background: #333; 
+            color: white; 
+            width: 200px; 
+        }
+        #startScreen button, #modMenu button { 
+            cursor: pointer; 
+            background: #e91e63; 
+            color: white; 
+            transition: transform 0.2s, box-shadow 0.2s; 
+        }
+        #startScreen button:hover, #modMenu button:hover { 
+            transform: scale(1.1); 
+            box-shadow: 0 0 15px #e91e63; 
+        }
+        #colorPicker { 
+            display: flex; 
+            gap: 15px; 
+        }
+        .colorOption { 
+            width: 50px; 
+            height: 50px; 
+            border: 3px solid #fff; 
+            border-radius: 50%; 
+            cursor: pointer; 
+            transition: transform 0.3s; 
+        }
+        .colorOption:hover { 
+            transform: scale(1.2); 
+            box-shadow: 0 0 10px #fff; 
+        }
         #modMenu { display: none; }
-        #modMenu label { display: flex; align-items: center; gap: 10px; }
-        #modMenu select { background: #333; color: white; border: 1px solid #fff; }
+        #modMenu label { 
+            display: flex; 
+            align-items: center; 
+            gap: 10px; 
+            font-size: 16px; 
+        }
+        #modMenu select { 
+            background: #333; 
+            color: white; 
+            border: 1px solid #fff; 
+            border-radius: 5px; 
+        }
+        #loadingText { 
+            font-size: 36px; 
+            text-shadow: 0 0 10px #0ff; 
+            animation: pulse 1.5s infinite; 
+        }
     </style>
 </head>
 <body>
 <div id="startScreen">
-    <h1>2D Fighting Game</h1>
+    <h1>2D Fighting Arena</h1>
     <input type="text" id="username" placeholder="Enter Username" maxlength="15">
     <h3>Choose Your Color</h3>
     <div id="colorPicker">
@@ -29,10 +106,10 @@
         <div class="colorOption" style="background-color: rgb(50, 255, 50);" onclick="selectColor('50,255,50')"></div>
         <div class="colorOption" style="background-color: rgb(255, 255, 50);" onclick="selectColor('255,255,50')"></div>
     </div>
-    <button onclick="startGame()">Start Game</button>
+    <button onclick="startGame()">Enter Arena</button>
 </div>
 <div id="modMenu">
-    <h1>Mod Menu (Press M to Toggle)</h1>
+    <h1>Mod Menu (Press M)</h1>
     <label><input type="checkbox" id="aimbotMod" onchange="toggleMod('aimbot', this.checked)"> Aimbot (Hold RMB)</label>
     <label><input type="checkbox" id="tracersMod" onchange="toggleMod('tracers', this.checked)"> Tracers to Enemies</label>
     <label>Tracer Color: <select id="tracerColor" onchange="setTracerColor(this.value)">
@@ -56,6 +133,13 @@
     <label><input type="checkbox" id="enemyFreezeMod" onchange="toggleMod('enemyFreeze', this.checked)"> Enemy Freeze</label>
     <label><input type="checkbox" id="fovMod" onchange="toggleMod('fov', this.checked)"> FOV Increase</label>
     <label>FOV Multiplier: <input type="range" id="fovMultiplier" min="0.5" max="2" value="1" step="0.1" onchange="setFovMultiplier(this.value)"></label>
+    <label><input type="checkbox" id="teleportMod" onchange="toggleMod('teleport', this.checked)"> Teleport (T Key)</label>
+    <label><input type="checkbox" id="superSizeMod" onchange="toggleMod('superSize', this.checked)"> Super Size</label>
+    <label>Size Multiplier: <input type="range" id="sizeMultiplier" min="1" max="3" value="1" step="0.5" onchange="setSizeMultiplier(this.value)"></label>
+    <label><input type="checkbox" id="bulletPenetrationMod" onchange="toggleMod('bulletPenetration', this.checked)"> Bullet Penetration</label>
+    <label><input type="checkbox" id="enemySpawnMod" onchange="toggleMod('enemySpawn', this.checked)"> Enemy Spawning</label>
+    <label><input type="checkbox" id="timeSlowMod" onchange="toggleMod('timeSlow', this.checked)"> Time Slow</label>
+    <label>Time Scale: <input type="range" id="timeScale" min="0.5" max="1" value="1" step="0.1" onchange="setTimeScale(this.value)"></label>
     <button onclick="closeModMenu()">Close Menu</button>
 </div>
 <script>
@@ -64,6 +148,7 @@ let enemies = [];
 let bullets = [];
 let powerUps = [];
 let terrain = [];
+let traps = [];
 let particles = [];
 let mapWidth = 4000;
 let mapHeight = 3000;
@@ -87,18 +172,28 @@ let mods = {
     autoReload: false,
     healthRegen: false,
     enemyFreeze: false,
-    fov: false
+    fov: false,
+    teleport: false,
+    superSize: false,
+    bulletPenetration: false,
+    enemySpawn: true,
+    timeSlow: false
 };
 let modSettings = {
     tracerColor: '255,0,0',
     speedMultiplier: 1,
     damageMultiplier: 1,
-    fovMultiplier: 1
+    fovMultiplier: 1,
+    sizeMultiplier: 1,
+    timeScale: 1
 };
 let modMenuOpen = false;
 let lastShotTime = 0;
 let feedbackText = '';
 let feedbackTimer = 0;
+let scoreStreak = 0;
+let lastDamageTaken = 0;
+let teleportCooldown = 0;
 
 function selectColor(rgb) {
     selectedColor = rgb;
@@ -131,6 +226,14 @@ function setFovMultiplier(value) {
     modSettings.fovMultiplier = parseFloat(value);
 }
 
+function setSizeMultiplier(value) {
+    modSettings.sizeMultiplier = parseFloat(value);
+}
+
+function setTimeScale(value) {
+    modSettings.timeScale = parseFloat(value);
+}
+
 function closeModMenu() {
     modMenuOpen = false;
     document.getElementById('modMenu').style.display = 'none';
@@ -148,6 +251,8 @@ function copyPlayerImage() {
         tempCanvas.rect(player.size / 2 - 10, -5, 20, 10);
     } else if (player.weapon === 'shotgun') {
         tempCanvas.rect(player.size / 2 - 15, -10, 30, 20);
+    } else if (player.weapon === 'laser') {
+        tempCanvas.rect(player.size / 2 - 5, -3, 15, 6);
     }
     tempCanvas.fill(255, 0, 0);
     tempCanvas.rect(-player.size / 2, player.size / 2, player.size * (player.health / 100), 5);
@@ -168,11 +273,12 @@ class Fighter {
     constructor(x, y, size, col, isPlayer, type = 'roamer') {
         this.x = x;
         this.y = y;
+        this.baseSize = size;
         this.size = size;
         this.col = col;
         this.isPlayer = isPlayer;
         this.type = type;
-        this.baseSpeed = isPlayer ? 5 : type === 'tank' ? 2 : 3;
+        this.baseSpeed = isPlayer ? 5 : type === 'tank' ? 2 : type === 'shooter' ? 4 : 3;
         this.speed = this.baseSpeed;
         this.angle = 0;
         this.health = isPlayer ? 100 : type === 'tank' ? 200 : 100;
@@ -180,24 +286,27 @@ class Fighter {
         this.targetY = random(mapHeight);
         this.changeTargetTimer = random(60, 120);
         this.weapon = isPlayer ? 'pistol' : 'none';
-        this.baseDamage = isPlayer ? 20 : type === 'tank' ? 15 : 10;
+        this.baseDamage = isPlayer ? 20 : type === 'tank' ? 15 : type === 'shooter' ? 8 : 10;
         this.damage = this.baseDamage;
-        this.bulletSpeed = 10;
+        this.bulletSpeed = isPlayer ? 10 : 8;
         this.score = 0;
-        this.ammo = isPlayer ? { pistol: 30, shotgun: 15 } : {};
-        this.maxAmmo = { pistol: 30, shotgun: 15 };
+        this.ammo = isPlayer ? { pistol: 30, shotgun: 15, laser: 5 } : {};
+        this.maxAmmo = { pistol: 30, shotgun: 15, laser: 5 };
         this.shield = false;
         this.damageBoost = false;
         this.damageBoostTimer = 0;
+        this.invisible = false;
+        this.invisibleTimer = 0;
     }
 
     update() {
+        let timeScale = mods.timeSlow ? modSettings.timeScale : 1;
         if (this.isPlayer) {
             let dx = 0, dy = 0;
-            if (keyIsDown(65)) dx -= this.speed; // A key (left)
-            if (keyIsDown(68)) dx += this.speed; // D key (right)
-            if (keyIsDown(87)) dy -= this.speed; // W key (up)
-            if (keyIsDown(83)) dy += this.speed; // S key (down)
+            if (keyIsDown(65)) dx -= this.speed * timeScale; // A key (left)
+            if (keyIsDown(68)) dx += this.speed * timeScale; // D key (right)
+            if (keyIsDown(87)) dy -= this.speed * timeScale; // W key (up)
+            if (keyIsDown(83)) dy += this.speed * timeScale; // S key (down)
             let newX = constrain(this.x + dx, 0, mapWidth);
             let newY = constrain(this.y + dy, 0, mapHeight);
             if (!this.collides(newX, newY)) {
@@ -209,7 +318,7 @@ class Fighter {
                 let minDist = Infinity;
                 for (let enemy of enemies) {
                     let d = dist(this.x, this.y, enemy.x, enemy.y);
-                    if (d < minDist) {
+                    if (d < minDist && !this.invisible) {
                         minDist = d;
                         nearestEnemy = enemy;
                     }
@@ -222,9 +331,13 @@ class Fighter {
                 this.angle = atan2(mouseY + cameraY - this.y, mouseX + cameraX - this.x);
             }
             this.speed = mods.speedHack ? this.baseSpeed * modSettings.speedMultiplier : this.baseSpeed;
+            this.size = mods.superSize ? this.baseSize * modSettings.sizeMultiplier : this.baseSize;
             this.damage = mods.damageMultiplier ? this.baseDamage * modSettings.damageMultiplier : this.baseDamage;
             if (this.damageBoost && millis() - this.damageBoostTimer > 10000) {
                 this.damageBoost = false;
+            }
+            if (this.invisible && millis() - this.invisibleTimer > 10000) {
+                this.invisible = false;
             }
             if (mods.healthRegen && frameCount % 60 === 0) {
                 this.health = min(this.health + 5, 100);
@@ -236,7 +349,8 @@ class Fighter {
     }
 
     aiMove(player) {
-        if (mods.enemyFreeze) return;
+        if (mods.enemyFreeze || player.invisible) return;
+        let timeScale = mods.timeSlow ? modSettings.timeScale : 1;
         if (this.type === 'roamer') {
             this.changeTargetTimer--;
             if (this.changeTargetTimer <= 0) {
@@ -245,8 +359,8 @@ class Fighter {
                 this.changeTargetTimer = random(60, 120);
             }
             let angle = atan2(this.targetY - this.y, this.targetX - this.x);
-            let newX = this.x + cos(angle) * this.speed * 0.5;
-            let newY = this.y + sin(angle) * this.speed * 0.5;
+            let newX = this.x + cos(angle) * this.speed * 0.5 * timeScale;
+            let newY = this.y + sin(angle) * this.speed * 0.5 * timeScale;
             if (!this.collides(newX, newY)) {
                 this.x = newX;
                 this.y = newY;
@@ -254,8 +368,8 @@ class Fighter {
             this.angle = angle;
         } else if (this.type === 'chaser') {
             let angle = atan2(player.y - this.y, player.x - this.x);
-            let newX = this.x + cos(angle) * this.speed;
-            let newY = this.y + sin(angle) * this.speed;
+            let newX = this.x + cos(angle) * this.speed * timeScale;
+            let newY = this.y + sin(angle) * this.speed * timeScale;
             if (!this.collides(newX, newY)) {
                 this.x = newX;
                 this.y = newY;
@@ -265,8 +379,8 @@ class Fighter {
             this.angle = atan2(player.y - this.y, player.x - this.x);
         } else if (this.type === 'bomber') {
             let angle = atan2(player.y - this.y, player.x - this.x);
-            let newX = this.x + cos(angle) * this.speed * 0.7;
-            let newY = this.y + sin(angle) * this.speed * 0.7;
+            let newX = this.x + cos(angle) * this.speed * 0.7 * timeScale;
+            let newY = this.y + sin(angle) * this.speed * 0.7 * timeScale;
             if (!this.collides(newX, newY)) {
                 this.x = newX;
                 this.y = newY;
@@ -274,21 +388,28 @@ class Fighter {
             this.angle = angle;
         } else if (this.type === 'tank') {
             let angle = atan2(player.y - this.y, player.x - this.x);
-            let newX = this.x + cos(angle) * this.speed;
-            let newY = this.y + sin(angle) * this.speed;
+            let newX = this.x + cos(angle) * this.speed * timeScale;
+            let newY = this.y + sin(angle) * this.speed * timeScale;
             if (!this.collides(newX, newY)) {
                 this.x = newX;
                 this.y = newY;
             }
             this.angle = angle;
-            if (dist(player.x, player.y, this.x, this.y) < 100 && frameCount % 60 === 0) {
-                player.takeDamage(15);
+        } else if (this.type === 'shooter') {
+            let angle = atan2(player.y - this.y, player.x - this.x);
+            let newX = this.x + cos(angle) * this.speed * timeScale;
+            let newY = this.y + sin(angle) * this.speed * timeScale;
+            if (!this.collides(newX, newY)) {
+                this.x = newX;
+                this.y = newY;
             }
+            this.angle = angle;
         }
     }
 
     collides(x, y) {
         for (let t of terrain) {
+            if (t.health <= 0) continue;
             if (x + this.size / 2 > t.x && x - this.size / 2 < t.x + t.w &&
                 y + this.size / 2 > t.y && y - this.size / 2 < t.y + t.h) {
                 return true;
@@ -301,7 +422,9 @@ class Fighter {
         push();
         translate(this.x, this.y);
         rotate(this.angle);
-        if (mods.esp && !this.isPlayer) {
+        if (this.isPlayer && this.invisible) {
+            fill(red(this.col), green(this.col), blue(this.col), 100);
+        } else if (mods.esp && !this.isPlayer) {
             stroke(255, 255, 0);
             strokeWeight(3);
             fill(this.col);
@@ -316,6 +439,8 @@ class Fighter {
             rect(this.size / 2 - 10, -5, 20, 10);
         } else if (this.weapon === 'shotgun') {
             rect(this.size / 2 - 15, -10, 30, 20);
+        } else if (this.weapon === 'laser') {
+            rect(this.size / 2 - 5, -3, 15, 6);
         }
         fill(255, 0, 0);
         rect(-this.size / 2, this.size / 2, this.size * (this.health / 100), 5);
@@ -340,24 +465,30 @@ class Fighter {
             return;
         }
         this.health -= amount;
+        if (this.isPlayer) {
+            lastDamageTaken = millis();
+            scoreStreak = 0;
+        }
         if (this.isPlayer && this.health <= 0) {
             this.health = 100;
             this.x = mapWidth / 2;
             this.y = mapHeight / 2;
-            this.ammo = { pistol: 30, shotgun: 15 };
+            this.ammo = { pistol: 30, shotgun: 15, laser: 5 };
             this.shield = false;
             this.damageBoost = false;
-        } else if (!this.isPlayer && this.health <= 0 && this.type === 'bomber') {
-            for (let i = 0; i < 20; i++) {
-                particles.push(new Particle(this.x, this.y, random(TWO_PI), random(2, 5)));
+            this.invisible = false;
+        } else if (!this.isPlayer && this.health <= 0) {
+            if (this.type === 'bomber') {
+                for (let i = 0; i < 30; i++) {
+                    particles.push(new Particle(this.x, this.y, random(TWO_PI), random(2, 6), color(random(255), random(100, 255), 0)));
+                }
+                if (dist(this.x, this.y, player.x, player.y) < 100 && !player.invisible) {
+                    player.takeDamage(30);
+                }
             }
-            if (dist(this.x, this.y, player.x, player.y) < 100) {
-                player.takeDamage(30);
-            }
-        }
-        if (!this.isPlayer && this.health <= 0) {
-            let scoreGain = 100 * (mods.damageMultiplier ? modSettings.damageMultiplier : 1);
+            let scoreGain = 100 * (mods.damageMultiplier ? modSettings.damageMultiplier : 1) * (1 + min(scoreStreak * 0.5, 5));
             player.score += scoreGain;
+            scoreStreak++;
         }
     }
 
@@ -378,6 +509,9 @@ class Fighter {
             lastShotTime = millis();
             feedbackText = 'Shot!';
             feedbackTimer = millis();
+            for (let i = 0; i < 5; i++) {
+                particles.push(new Particle(this.x + cos(this.angle) * this.size / 2, this.y + sin(this.angle) * this.size / 2, this.angle + random(-0.5, 0.5), random(2, 4), color(255, 255, 0)));
+            }
         }
     }
 
@@ -386,6 +520,26 @@ class Fighter {
         feedbackText = 'Reloaded!';
         feedbackTimer = millis();
     }
+
+    teleport() {
+        if (millis() - teleportCooldown < 5000) return;
+        let newX, newY, attempts = 0;
+        do {
+            newX = random(mapWidth);
+            newY = random(mapHeight);
+            attempts++;
+        } while (this.collides(newX, newY) && attempts < 10);
+        if (!this.collides(newX, newY)) {
+            this.x = newX;
+            this.y = newY;
+            teleportCooldown = millis();
+            feedbackText = 'Teleported!';
+            feedbackTimer = millis();
+            for (let i = 0; i < 20; i++) {
+                particles.push(new Particle(this.x, this.y, random(TWO_PI), random(1, 3), color(0, 255, 255)));
+            }
+        }
+    }
 }
 
 class Bullet {
@@ -393,14 +547,15 @@ class Bullet {
         this.x = x;
         this.y = y;
         this.angle = angle;
-        this.speed = isPlayerBullet ? (player.weapon === 'pistol' ? 10 : 5) : 8;
+        this.speed = isPlayerBullet ? (player.weapon === 'pistol' ? 10 : player.weapon === 'shotgun' ? 5 : 15) : 8;
         this.isPlayerBullet = isPlayerBullet;
-        this.col = isPlayerBullet ? color(0, 0, 255) : color(255, 0, 0);
+        this.col = isPlayerBullet ? (player.weapon === 'laser' ? color(255, 0, 255) : color(0, 0, 255)) : color(255, 0, 0);
     }
 
     update() {
-        this.x += cos(this.angle) * this.speed;
-        this.y += sin(this.angle) * this.speed;
+        let timeScale = mods.timeSlow ? modSettings.timeScale : 1;
+        this.x += cos(this.angle) * this.speed * timeScale;
+        this.y += sin(this.angle) * this.speed * timeScale;
     }
 
     show() {
@@ -417,17 +572,17 @@ class PowerUp {
     constructor(x, y) {
         this.x = x;
         this.y = y;
-        this.type = random(['health', 'speed', 'damage', 'shield', 'ammo']);
+        this.type = random(['health', 'speed', 'damage', 'shield', 'ammo', 'invisible']);
         this.size = 20;
     }
 
     show() {
-        fill(this.type === 'health' ? color(255, 100, 100) : this.type === 'speed' ? color(100, 100, 255) : this.type === 'damage' ? color(255, 50, 255) : this.type === 'shield' ? color(0, 255, 255) : color(200, 200, 200));
+        fill(this.type === 'health' ? color(255, 100, 100) : this.type === 'speed' ? color(100, 100, 255) : this.type === 'damage' ? color(255, 50, 255) : this.type === 'shield' ? color(0, 255, 255) : this.type === 'ammo' ? color(200, 200, 200) : color(50, 50, 50));
         ellipse(this.x, this.y, this.size);
         fill(0);
         textAlign(CENTER, CENTER);
         textSize(12);
-        text(this.type === 'health' ? 'H' : this.type === 'speed' ? 'S' : this.type === 'damage' ? 'D' : this.type === 'shield' ? 'SH' : 'A', this.x, this.y);
+        text(this.type === 'health' ? 'H' : this.type === 'speed' ? 'S' : this.type === 'damage' ? 'D' : this.type === 'shield' ? 'SH' : this.type === 'ammo' ? 'A' : 'I', this.x, this.y);
     }
 
     collect(player) {
@@ -443,11 +598,17 @@ class PowerUp {
             } else if (this.type === 'shield') {
                 player.shield = true;
             } else if (this.type === 'ammo') {
-                player.ammo = { pistol: player.maxAmmo.pistol, shotgun: player.maxAmmo.shotgun };
+                player.ammo = { pistol: player.maxAmmo.pistol, shotgun: player.maxAmmo.shotgun, laser: player.maxAmmo.laser };
+            } else if (this.type === 'invisible') {
+                player.invisible = true;
+                player.invisibleTimer = millis();
             }
-            player.score += 100 * (mods.damageMultiplier ? modSettings.damageMultiplier : 1);
+            player.score += 100 * (mods.damageMultiplier ? modSettings.damageMultiplier : 1) * (1 + min(scoreStreak * 0.5, 5));
             feedbackText = `${this.type.charAt(0).toUpperCase() + this.type.slice(1)} Collected!`;
             feedbackTimer = millis();
+            for (let i = 0; i < 10; i++) {
+                particles.push(new Particle(this.x, this.y, random(TWO_PI), random(1, 3), color(random(255), random(255), random(255))));
+            }
             return true;
         }
         return false;
@@ -455,32 +616,73 @@ class PowerUp {
 }
 
 class Particle {
-    constructor(x, y, angle, speed) {
-        this.x =
-
-x;
+    constructor(x, y, angle, speed, col) {
+        this.x = x;
         this.y = y;
         this.angle = angle;
         this.speed = speed;
-        this.life = 30;
+        this.col = col;
+        this.life = random(20, 40);
+        this.size = random(3, 8);
     }
 
     update() {
-        this.x += cos(this.angle) * this.speed;
-        this.y += sin(this.angle) * this.speed;
+        let timeScale = mods.timeSlow ? modSettings.timeScale : 1;
+        this.x += cos(this.angle) * this.speed * timeScale;
+        this.y += sin(this.angle) * this.speed * timeScale;
         this.life--;
     }
 
     show() {
-        fill(255, 100, 0, map(this.life, 0, 30, 0, 255));
-        ellipse(this.x, this.y, 5);
+        fill(red(this.col), green(this.col), blue(this.col), map(this.life, 0, 40, 0, 255));
+        ellipse(this.x, this.y, this.size);
+    }
+}
+
+class Trap {
+    constructor(x1, y1, x2, y2) {
+        this.x1 = x1;
+        this.y1 = y1;
+        this.x2 = x2;
+        this.y2 = y2;
+        this.speed = 2;
+        this.progress = 0;
+        this.direction = 1;
+    }
+
+    update() {
+        let timeScale = mods.timeSlow ? modSettings.timeScale : 1;
+        this.progress += this.speed * timeScale * this.direction / dist(this.x1, this.y1, this.x2, this.y2);
+        if (this.progress >= 1 || this.progress <= 0) this.direction *= -1;
+        this.progress = constrain(this.progress, 0, 1);
+        let currentX = lerp(this.x1, this.x2, this.progress);
+        let currentY = lerp(this.y1, this.y2, this.progress);
+        if (dist(currentX, currentY, player.x, player.y) < 20 && !player.invisible) {
+            player.takeDamage(20);
+            for (let i = 0; i < 10; i++) {
+                particles.push(new Particle(currentX, currentY, random(TWO_PI), random(1, 3), color(255, 0, 0)));
+            }
+        }
+    }
+
+    show() {
+        stroke(255, 0, 0);
+        strokeWeight(5);
+        line(this.x1, this.y1, this.x2, this.y2);
+        let currentX = lerp(this.x1, this.x2, this.progress);
+        let currentY = lerp(this.y1, this.y2, this.progress);
+        fill(255, 0, 0);
+        ellipse(currentX, currentY, 10);
+        noStroke();
     }
 }
 
 function setup() {
     createCanvas(windowWidth, windowHeight);
+    colorMode(HSB, 360, 100, 100);
     loadingStartTime = millis();
     playerColor = color(...selectedColor.split(',').map(Number));
+    colorMode(RGB);
 }
 
 function windowResized() {
@@ -491,35 +693,57 @@ function draw() {
     if (gameState === 'loading') {
         background(0);
         fill(255);
-        textSize(32);
+        textSize(36);
         textAlign(CENTER, CENTER);
         text('Loading...', width / 2, height / 2);
+        document.getElementById('startScreen').innerHTML = `
+            <h1 id="loadingText">Loading...</h1>
+        `;
         if (millis() - loadingStartTime > 2000) {
             gameState = 'start';
+            document.getElementById('startScreen').innerHTML = `
+                <h1>2D Fighting Arena</h1>
+                <input type="text" id="username" placeholder="Enter Username" maxlength="15">
+                <h3>Choose Your Color</h3>
+                <div id="colorPicker">
+                    <div class="colorOption" style="background-color: rgb(50, 50, 255);" onclick="selectColor('50,50,255')"></div>
+                    <div class="colorOption" style="background-color: rgb(255, 50, 50);" onclick="selectColor('255,50,50')"></div>
+                    <div class="colorOption" style="background-color: rgb(50, 255, 50);" onclick="selectColor('50,255,50')"></div>
+                    <div class="colorOption" style="background-color: rgb(255, 255, 50);" onclick="selectColor('255,255,50')"></div>
+                </div>
+                <button onclick="startGame()">Enter Arena</button>
+            `;
             player = new Fighter(mapWidth / 2, mapHeight / 2, 40, playerColor, true);
-            for (let i = 0; i < 18; i++) {
-                let type = random(['roamer', 'chaser', 'sniper', 'bomber', 'tank']);
-                enemies.push(new Fighter(random(mapWidth), random(mapHeight), type === 'tank' ? 60 : 40, type === 'roamer' ? color(255, 50, 50) : type === 'chaser' ? color(50, 255, 50) : type === 'sniper' ? color(255, 255, 50) : type === 'bomber' ? color(255, 100, 0) : color(100, 100, 100), false, type));
+            for (let i = 0; i < 20; i++) {
+                let type = random(['roamer', 'chaser', 'sniper', 'bomber', 'tank', 'shooter']);
+                enemies.push(new Fighter(random(mapWidth), random(mapHeight), type === 'tank' ? 60 : 40, type === 'roamer' ? color(255, 50, 50) : type === 'chaser' ? color(50, 255, 50) : type === 'sniper' ? color(255, 255, 50) : type === 'bomber' ? color(255, 100, 0) : type === 'tank' ? color(100, 100, 100) : color(200, 50, 200), false, type));
             }
-            for (let i = 0; i < 40; i++) {
-                terrain.push({x: random(mapWidth), y: random(mapHeight), w: random(30, 100), h: random(30, 100)});
+            for (let i = 0; i < 50; i++) {
+                terrain.push({x: random(mapWidth), y: random(mapHeight), w: random(30, 100), h: random(30, 100), health: random() > 0.5 ? 100 : Infinity});
             }
-            for (let i = 0; i < 10; i++) {
+            for (let i = 0; i < 12; i++) {
                 powerUps.push(new PowerUp(random(mapWidth), random(mapHeight)));
+            }
+            for (let i = 0; i < 5; i++) {
+                let x1 = random(mapWidth), y1 = random(mapHeight);
+                let x2 = x1 + random(-200, 200), y2 = y1 + random(-200, 200);
+                traps.push(new Trap(x1, y1, x2, y2));
             }
         }
     } else if (gameState === 'start') {
         // Start screen handled by HTML
     } else if (gameState === 'playing') {
+        let timeScale = mods.timeSlow ? modSettings.timeScale : 1;
         // Apply FOV scaling
         let fovScale = mods.fov ? modSettings.fovMultiplier : 1;
         let scaledWidth = windowWidth / fovScale;
         let scaledHeight = windowHeight / fovScale;
         background(100, 150, 100);
-        // Draw dynamic lighting (gradient around player)
-        let gradient = drawingContext.createRadialGradient(player.x - cameraX, player.y - cameraY, 0, player.x - cameraX, player.y - cameraY, 300);
-        gradient.addColorStop(0, 'rgba(255, 255, 255, 0.2)');
-        gradient.addColorStop(1, 'rgba(0, 0, 0, 0.5)');
+        // Draw dynamic lighting
+        let flicker = sin(millis() / 500) * 0.1 + 0.9;
+        let gradient = drawingContext.createRadialGradient(player.x - cameraX, player.y - cameraY, 0, player.x - cameraX, player.y - cameraY, 400);
+        gradient.addColorStop(0, `rgba(255, 255, 255, ${0.3 * flicker})`);
+        gradient.addColorStop(1, 'rgba(0, 0, 0, 0.6)');
         drawingContext.fillStyle = gradient;
         drawingContext.fillRect(cameraX, cameraY, scaledWidth, scaledHeight);
         // Draw grid background
@@ -536,24 +760,46 @@ function draw() {
         push();
         translate(-cameraX, -cameraY);
         scale(fovScale);
-        // Draw terrain
-        fill(150, 100, 50, mods.wallhack ? 100 : 255);
+        // Draw terrain with noise texture
         for (let t of terrain) {
-            rect(t.x, t.y, t.w, t.h);
+            if (t.health <= 0) continue;
+            fill(150, 100, 50, mods.wallhack ? 100 : 255);
+            beginShape();
+            for (let x = t.x; x <= t.x + t.w; x += 5) {
+                for (let y = t.y; y <= t.y + t.h; y += 5) {
+                    let n = noise(x * 0.05, y * 0.05) * 20;
+                    fill(150 + n, 100 + n, 50 + n, mods.wallhack ? 100 : 255);
+                    rect(x, y, 5, 5);
+                }
+            }
+            endShape();
+            if (t.health < Infinity) {
+                fill(255, 0, 0);
+                rect(t.x, t.y - 10, t.w * (t.health / 100), 5);
+            }
         }
         // Draw tracers
         if (mods.tracers) {
             strokeWeight(2);
             if (modSettings.tracerColor === 'rainbow') {
+                colorMode(HSB, 360, 100, 100);
                 let hue = (millis() % 2000) / 2000 * 360;
-                stroke(color(`hsl(${hue}, 100%, 50%)`));
+                stroke(hue, 100, 100, 0.7);
+                colorMode(RGB);
             } else {
                 stroke(...modSettings.tracerColor.split(',').map(Number), 100);
             }
             for (let enemy of enemies) {
-                line(player.x, player.y, enemy.x, enemy.y);
+                if (!player.invisible) {
+                    line(player.x, player.y, enemy.x, enemy.y);
+                }
             }
             noStroke();
+        }
+        // Update and display traps
+        for (let trap of traps) {
+            trap.update();
+            trap.show();
         }
         // Update and display power-ups
         for (let i = powerUps.length - 1; i >= 0; i--) {
@@ -572,17 +818,19 @@ function draw() {
             enemy.aiMove(player);
             enemy.update();
             enemy.show();
-            if (enemy.type === 'sniper' && dist(player.x, player.y, enemy.x, enemy.y) < 300 && frameCount % 90 === 0 && !mods.enemyFreeze) {
+            if (enemy.type === 'sniper' && dist(player.x, player.y, enemy.x, enemy.y) < 300 && frameCount % 90 === 0 && !mods.enemyFreeze && !player.invisible) {
                 bullets.push(new Bullet(enemy.x, enemy.y, atan2(player.y - enemy.y, player.x - enemy.x), false));
-            } else if (dist(player.x, player.y, enemy.x, enemy.y) < 60 && frameCount % 60 === 0 && !mods.enemyFreeze) {
+            } else if (enemy.type === 'shooter' && dist(player.x, player.y, enemy.x, enemy.y) < 400 && frameCount % 30 === 0 && !mods.enemyFreeze && !player.invisible) {
+                bullets.push(new Bullet(enemy.x, enemy.y, atan2(player.y - player.y, player.x - enemy.x), false));
+            } else if (dist(player.x, player.y, enemy.x, enemy.y) < 60 && frameCount % 60 === 0 && !mods.enemyFreeze && !player.invisible) {
                 player.takeDamage(enemy.type === 'tank' ? 15 : 10);
             }
             if (dist(player.x, player.y, enemy.x, enemy.y) < 60 && frameCount % 60 === 0) {
                 let damage = player.damageBoost ? player.damage * 2 : player.damage;
                 enemy.takeDamage(damage);
-                if (enemy.health <= 0) {
+                if (enemy.health <= 0 && mods.enemySpawn) {
                     enemies.splice(i, 1);
-                    enemies.push(new Fighter(random(mapWidth), random(mapHeight), random(['roamer', 'chaser', 'sniper', 'bomber', 'tank']) === 'tank' ? 60 : 40, random(['roamer', 'chaser', 'sniper', 'bomber', 'tank']) === 'roamer' ? color(255, 50, 50) : random(['roamer', 'chaser', 'sniper', 'bomber', 'tank']) === 'chaser' ? color(50, 255, 50) : random(['roamer', 'chaser', 'sniper', 'bomber', 'tank']) === 'sniper' ? color(255, 255, 50) : random(['roamer', 'chaser', 'sniper', 'bomber', 'tank']) === 'bomber' ? color(255, 100, 0) : color(100, 100, 100), false, random(['roamer', 'chaser', 'sniper', 'bomber', 'tank'])));
+                    enemies.push(new Fighter(random(mapWidth), random(mapHeight), random(['roamer', 'chaser', 'sniper', 'bomber', 'tank', 'shooter']) === 'tank' ? 60 : 40, random(['roamer', 'chaser', 'sniper', 'bomber', 'tank', 'shooter']) === 'roamer' ? color(255, 50, 50) : random(['roamer', 'chaser', 'sniper', 'bomber', 'tank', 'shooter']) === 'chaser' ? color(50, 255, 50) : random(['roamer', 'chaser', 'sniper', 'bomber', 'tank', 'shooter']) === 'sniper' ? color(255, 255, 50) : random(['roamer', 'chaser', 'sniper', 'bomber', 'tank', 'shooter']) === 'bomber' ? color(255, 100, 0) : random(['roamer', 'chaser', 'sniper', 'bomber', 'tank', 'shooter']) === 'tank' ? color(100, 100, 100) : color(200, 50, 200), false, random(['roamer', 'chaser', 'sniper', 'bomber', 'tank', 'shooter'])));
                 }
             }
         }
@@ -595,14 +843,20 @@ function draw() {
                 continue;
             }
             let hitTerrain = false;
-            for (let t of terrain) {
-                if (bullets[i].x > t.x && bullets[i].x < t.x + t.w && bullets[i].y > t.y && bullets[i].y < t.y + t.h) {
-                    for (let j = 0; j < 5; j++) {
-                        particles.push(new Particle(bullets[i].x, bullets[i].y, random(TWO_PI), random(1, 3)));
+            if (!mods.bulletPenetration) {
+                for (let t of terrain) {
+                    if (t.health <= 0) continue;
+                    if (bullets[i].x > t.x && bullets[i].x < t.x + t.w && bullets[i].y > t.y && bullets[i].y < t.y + t.h) {
+                        if (t.health < Infinity) {
+                            t.health -= bullets[i].isPlayerBullet ? player.damage : 10;
+                            for (let j = 0; j < 5; j++) {
+                                particles.push(new Particle(bullets[i].x, bullets[i].y, random(TWO_PI), random(1, 3), color(150, 100, 50)));
+                            }
+                        }
+                        bullets.splice(i, 1);
+                        hitTerrain = true;
+                        break;
                     }
-                    bullets.splice(i, 1);
-                    hitTerrain = true;
-                    break;
                 }
             }
             if (hitTerrain) continue;
@@ -611,22 +865,22 @@ function draw() {
                     if (dist(bullets[i].x, bullets[i].y, enemy.x, enemy.y) < 20) {
                         let damage = player.damageBoost ? player.damage * 2 : player.damage;
                         enemy.takeDamage(damage * 2);
-                        for (let j = 0; j < 5; j++) {
-                            particles.push(new Particle(bullets[i].x, bullets[i].y, random(TWO_PI), random(1, 3)));
+                        for (let j = 0; j < 10; j++) {
+                            particles.push(new Particle(bullets[i].x, bullets[i].y, random(TWO_PI), random(2, 5), color(random(255), random(100, 255), 0)));
                         }
                         bullets.splice(i, 1);
-                        if (enemy.health <= 0) {
+                        if (enemy.health <= 0 && mods.enemySpawn) {
                             enemies.splice(enemies.indexOf(enemy), 1);
-                            enemies.push(new Fighter(random(mapWidth), random(mapHeight), random(['roamer', 'chaser', 'sniper', 'bomber', 'tank']) === 'tank' ? 60 : 40, random(['roamer', 'chaser', 'sniper', 'bomber', 'tank']) === 'roamer' ? color(255, 50, 50) : random(['roamer', 'chaser', 'sniper', 'bomber', 'tank']) === 'chaser' ? color(50, 255, 50) : random(['roamer', 'chaser', 'sniper', 'bomber', 'tank']) === 'sniper' ? color(255, 255, 50) : random(['roamer', 'chaser', 'sniper', 'bomber', 'tank']) === 'bomber' ? color(255, 100, 0) : color(100, 100, 100), false, random(['roamer', 'chaser', 'sniper', 'bomber', 'tank'])));
+                            enemies.push(new Fighter(random(mapWidth), random(mapHeight), random(['roamer', 'chaser', 'sniper', 'bomber', 'tank', 'shooter']) === 'tank' ? 60 : 40, random(['roamer', 'chaser', 'sniper', 'bomber', 'tank', 'shooter']) === 'roamer' ? color(255, 50, 50) : random(['roamer', 'chaser', 'sniper', 'bomber', 'tank', 'shooter']) === 'chaser' ? color(50, 255, 50) : random(['roamer', 'chaser', 'sniper', 'bomber', 'tank', 'shooter']) === 'sniper' ? color(255, 255, 50) : random(['roamer', 'chaser', 'sniper', 'bomber', 'tank', 'shooter']) === 'bomber' ? color(255, 100, 0) : random(['roamer', 'chaser', 'sniper', 'bomber', 'tank', 'shooter']) === 'tank' ? color(100, 100, 100) : color(200, 50, 200), false, random(['roamer', 'chaser', 'sniper', 'bomber', 'tank', 'shooter'])));
                         }
                         break;
                     }
                 }
             } else {
-                if (dist(bullets[i].x, bullets[i].y, player.x, player.y) < 20) {
+                if (dist(bullets[i].x, bullets[i].y, player.x, player.y) < 20 && !player.invisible) {
                     player.takeDamage(20);
-                    for (let j = 0; j < 5; j++) {
-                        particles.push(new Particle(bullets[i].x, bullets[i].y, random(TWO_PI), random(1, 3)));
+                    for (let j = 0; j < 10; j++) {
+                        particles.push(new Particle(bullets[i].x, bullets[i].y, random(TWO_PI), random(2, 5), color(255, 0, 0)));
                     }
                     bullets.splice(i, 1);
                 }
@@ -648,10 +902,13 @@ function draw() {
         text(`Weapon: ${player.weapon}`, 10, 40);
         text(`Ammo: ${player.ammo[player.weapon]}/${player.maxAmmo[player.weapon]}`, 10, 60);
         text(`Score: ${player.score}`, 10, 80);
-        text(`Player: ${username}`, 10, 100);
-        if (player.shield) text('Shield: Active', 10, 120);
-        if (player.damageBoost) text('Damage Boost: Active', 10, 140);
+        text(`Streak: ${scoreStreak}x`, 10, 100);
+        text(`Player: ${username}`, 10, 120);
+        if (player.shield) text('Shield: Active', 10, 140);
+        if (player.damageBoost) text('Damage Boost: Active', 10, 160);
+        if (player.invisible) text('Invisible: Active', 10, 180);
         if (feedbackText && millis() - feedbackTimer < 1000) {
+            textSize(20);
             text(feedbackText, width / 2, height - 50);
         }
     }
@@ -676,8 +933,12 @@ function keyPressed() {
             player.setWeapon('pistol', 20, 10);
         } else if (key === '2') {
             player.setWeapon('shotgun', 40, 5);
+        } else if (key === '3') {
+            player.setWeapon('laser', 60, 15);
         } else if (key === 'r' || key === 'R') {
             player.reload();
+        } else if (key === 't' || key === 'T' && mods.teleport) {
+            player.teleport();
         }
     }
 }
