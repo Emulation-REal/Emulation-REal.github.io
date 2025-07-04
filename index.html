@@ -144,7 +144,7 @@
             max-height: 500px;
             overflow: hidden;
         }
-        .mod-section.collapsed .modpele-section-content {
+        .mod-section.collapsed .mod-section-content {
             max-height: 0;
         }
         .mod-option {
@@ -437,6 +437,7 @@
         function updateAimbotFovMesh() {
             if (aimbotFovMesh) {
                 scene.remove(aimbotFovMesh);
+                aimbotFovMesh.geometry.dispose();
                 aimbotFovMesh = null;
             }
             if (modSettings.aimbotFovVisible && modSettings.aimbot) {
@@ -484,76 +485,11 @@
             infinitePickups: false
         };
 
-        // Tracers setup with glow effect
+        // Tracers setup with simplified materials
         const tracers = [];
-        const tracerGeometry = new THREE.BufferGeometry();
-        const tracerMaterialMelee = new THREE.ShaderMaterial({
-            uniforms: {
-                color: { value: new THREE.Color(0xff0000) },
-                glowIntensity: { value: 0.5 }
-            },
-            vertexShader: `
-                varying vec3 vPosition;
-                void main() {
-                    vPosition = position;
-                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                }
-            `,
-            fragmentShader: `
-                uniform vec3 color;
-                uniform float glowIntensity;
-                varying vec3 vPosition;
-                void main() {
-                    float intensity = glowIntensity * (1.0 - length(vPosition) / 10.0);
-                    gl_FragColor = vec4(color, intensity);
-                }
-            `,
-            transparent: true,
-            linewidth: 3
-        });
-        const tracerMaterialShooter = new THREE.ShaderMaterial({
-            uniforms: {
-                color: { value: new THREE.Color(0x0000ff) },
-                glowIntensity: { value: 0.5 }
-            },
-            vertexShader: `
-                varying vec3 vPosition;
-                void main() {
-                    vPosition = position;
-                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                }
-            `,
-            fragmentShader: `
-                uniform vec3 color;
-                uniform float glowIntensity;
-                varying vec3 vPosition;
-                void main() {
-                    float intensity = glowIntensity * (1.0 - length(vPosition) / 10.0);
-                    gl_FragColor = vec4(color, intensity);
-                }
-            `,
-            transparent: true,
-            linewidth: 3
-        });
-        const tracerMaterialHeavy = new THREE.ShaderMaterial({
-            uniforms: {
-                color: { value: new THREE.Color(0x800080) },
-                glowIntensity: { value: 0.5 }
-            },
-            vertexShader: `
-                varying vec3 vPosition;
-                void main() {
-                    vPosition = position;
-                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                }
-            `,
-            fragmentShader: `
-                uniform vec3 color;
- pressure: 0.5 }
-            `,
-            transparent: true,
-            linewidth: 3
-        });
+        const tracerMaterialMelee = new THREE.LineBasicMaterial({ color: 0xff0000, linewidth: 3, transparent: true, opacity: 0.8 });
+        const tracerMaterialShooter = new THREE.LineBasicMaterial({ color: 0x0000ff, linewidth: 3, transparent: true, opacity: 0.8 });
+        const tracerMaterialHeavy = new THREE.LineBasicMaterial({ color: 0x800080, linewidth: 3, transparent: true, opacity: 0.8 });
 
         // Menu toggle and drag
         const modMenu = document.getElementById('modMenu');
@@ -727,7 +663,7 @@
         ];
         function spawnWave() {
             enemies.length = 0;
-            scene.children = scene.children.filter(child => !child.isEnemy && !child.isOutline);
+            scene.children = scene.children.filter(child => !child.isEnemy && !child.isOutline && !child.isTracer);
             enemiesLeft = wave * 5;
             document.getElementById('enemiesLeft').textContent = enemiesLeft;
             for (let i = 0; i < enemiesLeft; i++) {
@@ -772,25 +708,34 @@
             }
         }
 
-        // Tracers (from crosshair with glow)
+        // Tracers (from crosshair to enemies)
         function updateTracers() {
             tracers.forEach(tracer => {
-                if (tracer) scene.remove(tracer);
+                if (tracer) {
+                    scene.remove(tracer);
+                    tracer.geometry.dispose();
+                }
             });
             tracers.length = 0;
             if (modSettings.tracers) {
                 enemies.forEach(enemy => {
                     if (!enemy.dead && enemy.position) {
-                        const vector = new THREE.Vector3(0, 0, -0.5);
-                        vector.unproject(camera);
+                        const crosshairPos = new THREE.Vector3();
+                        camera.getWorldPosition(crosshairPos);
+                        const direction = new THREE.Vector3();
+                        camera.getWorldDirection(direction);
+                        const startPos = crosshairPos.clone().add(direction.multiplyScalar(0.5));
+                        const endPos = enemy.position.clone();
+                        endPos.y += enemy.type === 'heavy' ? 1.25 : 1;
                         const positions = new Float32Array([
-                            vector.x, vector.y, vector.z,
-                            enemy.position.x, enemy.position.y + (enemy.type === 'heavy' ? 1.25 : 1), enemy.position.z
+                            startPos.x, startPos.y, startPos.z,
+                            endPos.x, endPos.y, endPos.z
                         ]);
-                        const geometry = tracerGeometry.clone();
+                        const geometry = new THREE.BufferGeometry();
                         geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
                         const material = enemy.type === 'melee' ? tracerMaterialMelee : enemy.type === 'shooter' ? tracerMaterialShooter : tracerMaterialHeavy;
                         const line = new THREE.Line(geometry, material);
+                        line.isTracer = true;
                         scene.add(line);
                         tracers.push(line);
                     }
@@ -798,21 +743,23 @@
             }
         }
 
-        // Aimbot
+        // Aimbot with corrected rotation
         function updateAimbot() {
             if (modSettings.aimbot && controls.isLocked && keys['MouseButton2']) {
                 const playerPos = controls.getObject().position;
                 let closestEnemy = null;
-                let minDist = Infinity;
+                let minAngle = Infinity;
                 const fovRad = modSettings.aimbotFov * Math.PI / 180;
+                const cameraDir = new THREE.Vector3();
+                controls.getObject().getWorldDirection(cameraDir);
                 enemies.forEach(enemy => {
                     if (enemy.dead) return;
                     const enemyPos = enemy.position.clone();
                     enemyPos.y += enemy.type === 'heavy' ? 1.25 : 1;
-                    const vector = enemyPos.clone().project(camera);
-                    const dist = Math.sqrt(vector.x * vector.x + vector.y * vector.y);
-                    if (dist * camera.fov <= modSettings.aimbotFov / 2 && dist < minDist) {
-                        minDist = dist;
+                    const direction = enemyPos.clone().sub(playerPos).normalize();
+                    const angle = cameraDir.angleTo(direction);
+                    if (angle <= fovRad / 2 && angle < minAngle) {
+                        minAngle = angle;
                         closestEnemy = enemy;
                     }
                 });
@@ -822,7 +769,7 @@
                     const direction = targetPos.sub(playerPos).normalize();
                     const yaw = Math.atan2(direction.x, direction.z);
                     const pitch = Math.asin(direction.y);
-                    camera.rotation.set(-pitch, yaw, 0, 'YXZ');
+                    controls.getObject().rotation.set(-pitch, yaw, 0, 'YXZ');
                 }
             }
         }
