@@ -2,946 +2,237 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Enhanced 2D Fighting Game</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Shooter Game</title>
     <style>
         body { margin: 0; overflow: hidden; }
         canvas { display: block; }
-        #startScreen, #modMenu { 
-            position: absolute; 
-            top: 0; 
-            left: 0; 
-            width: 100%; 
-            height: 100%; 
-            background: linear-gradient(45deg, #1a1a1a, #4a235a); 
-            color: white; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center; 
-            font-family: 'Arial', sans-serif; 
-            animation: gradientShift 5s ease infinite;
+        #hud {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-family: Arial, sans-serif;
+            font-size: 16px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 5px;
         }
-        @keyframes gradientShift {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-        #startScreen h1, #modMenu h1 { 
-            font-size: 48px; 
-            text-shadow: 0 0 10px #0ff; 
-            animation: pulse 2s infinite; 
-        }
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
-        #startScreen input, #startScreen button, #modMenu input, #modMenu button, #modMenu select { 
-            margin: 15px; 
-            padding: 12px; 
-            font-size: 18px; 
-            border-radius: 5px; 
-            border: none; 
-        }
-        #startScreen input { 
-            background: #333; 
-            color: white; 
-            width: 200px; 
-        }
-        #startScreen button, #modMenu button { 
-            cursor: pointer; 
-            background: #e91e63; 
-            color: white; 
-            transition: transform 0.2s, box-shadow 0.2s; 
-        }
-        #startScreen button:hover, #modMenu button:hover { 
-            transform: scale(1.1); 
-            box-shadow: 0 0 15px #e91e63; 
-        }
-        #colorPicker { 
-            display: flex; 
-            gap: 15px; 
-        }
-        .colorOption { 
-            width: 50px; 
-            height: 50px; 
-            border: 3px solid #fff; 
-            border-radius: 50%; 
-            cursor: pointer; 
-            transition: transform 0.3s; 
-        }
-        .colorOption:hover { 
-            transform: scale(1.2); 
-            box-shadow: 0 0 10px #fff; 
-        }
-        #modMenu { display: none; }
-        #modMenu label { 
-            display: flex; 
-            align-items: center; 
-            gap: 10px; 
-            font-size: 16px; 
-        }
-        #modMenu select { 
-            background: #333; 
-            color: white; 
-            border: 1px solid #fff; 
-            border-radius: 5px; 
-        }
-        #loadingText { 
-            font-size: 36px; 
-            text-shadow: 0 0 10px #0ff; 
-            animation: pulse 1.5s infinite; 
+        #weaponMenu {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: white;
+            font-family: Arial, sans-serif;
+            font-size: 16px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 5px;
         }
     </style>
 </head>
 <body>
-<div id="startScreen">
-    <h1>2D Fighting Arena</h1>
-    <input type="text" id="username" placeholder="Enter Username" maxlength="15">
-    <h3>Choose Your Color</h3>
-    <div id="colorPicker">
-        <div class="colorOption" style="background-color: rgb(50, 50, 255);" onclick="selectColor('50,50,255')"></div>
-        <div class="colorOption" style="background-color: rgb(255, 50, 50);" onclick="selectColor('255,50,50')"></div>
-        <div class="colorOption" style="background-color: rgb(50, 255, 50);" onclick="selectColor('50,255,50')"></div>
-        <div class="colorOption" style="background-color: rgb(255, 255, 50);" onclick="selectColor('255,255,50')"></div>
+    <div id="hud">
+        <div>Health: <span id="health">100</span></div>
+        <div>Ammo: <span id="ammo">30</span></div>
+        <div>Weapon: <span id="weapon">Pistol</span></div>
     </div>
-    <button onclick="startGame()">Enter Arena</button>
-</div>
-<div id="modMenu">
-    <h1>Mod Menu (Press M)</h1>
-    <label><input type="checkbox" id="aimbotMod" onchange="toggleMod('aimbot', this.checked)"> Aimbot (Hold RMB)</label>
-    <label><input type="checkbox" id="tracersMod" onchange="toggleMod('tracers', this.checked)"> Tracers to Enemies</label>
-    <label>Tracer Color: <select id="tracerColor" onchange="setTracerColor(this.value)">
-        <option value="255,0,0">Red</option>
-        <option value="0,255,0">Green</option>
-        <option value="0,0,255">Blue</option>
-        <option value="255,255,0">Yellow</option>
-        <option value="rainbow">Rainbow</option>
-    </select></label>
-    <label><input type="checkbox" id="godModeMod" onchange="toggleMod('godMode', this.checked)"> God Mode</label>
-    <label><input type="checkbox" id="infiniteAmmoMod" onchange="toggleMod('infiniteAmmo', this.checked)"> Infinite Ammo</label>
-    <label><input type="checkbox" id="speedHackMod" onchange="toggleMod('speedHack', this.checked)"> Speed Hack</label>
-    <label>Speed Multiplier: <input type="range" id="speedMultiplier" min="1" max="5" value="1" step="0.5" onchange="setSpeedMultiplier(this.value)"></label>
-    <label><input type="checkbox" id="damageMultiplierMod" onchange="toggleMod('damageMultiplier', this.checked)"> Damage Multiplier</label>
-    <label>Damage Multiplier: <input type="range" id="damageMultiplier" min="1" max="5" value="1" step="0.5" onchange="setDamageMultiplier(this.value)"></label>
-    <label><input type="checkbox" id="espMod" onchange="toggleMod('esp', this.checked)"> ESP (Enemy Highlight)</label>
-    <label><input type="checkbox" id="rapidFireMod" onchange="toggleMod('rapidFire', this.checked)"> Rapid Fire</label>
-    <label><input type="checkbox" id="wallhackMod" onchange="toggleMod('wallhack', this.checked)"> Wallhack</label>
-    <label><input type="checkbox" id="autoReloadMod" onchange="toggleMod('autoReload', this.checked)"> Auto-Reload</label>
-    <label><input type="checkbox" id="healthRegenMod" onchange="toggleMod('healthRegen', this.checked)"> Health Regen</label>
-    <label><input type="checkbox" id="enemyFreezeMod" onchange="toggleMod('enemyFreeze', this.checked)"> Enemy Freeze</label>
-    <label><input type="checkbox" id="fovMod" onchange="toggleMod('fov', this.checked)"> FOV Increase</label>
-    <label>FOV Multiplier: <input type="range" id="fovMultiplier" min="0.5" max="2" value="1" step="0.1" onchange="setFovMultiplier(this.value)"></label>
-    <label><input type="checkbox" id="teleportMod" onchange="toggleMod('teleport', this.checked)"> Teleport (T Key)</label>
-    <label><input type="checkbox" id="superSizeMod" onchange="toggleMod('superSize', this.checked)"> Super Size</label>
-    <label>Size Multiplier: <input type="range" id="sizeMultiplier" min="1" max="3" value="1" step="0.5" onchange="setSizeMultiplier(this.value)"></label>
-    <label><input type="checkbox" id="bulletPenetrationMod" onchange="toggleMod('bulletPenetration', this.checked)"> Bullet Penetration</label>
-    <label><input type="checkbox" id="enemySpawnMod" onchange="toggleMod('enemySpawn', this.checked)"> Enemy Spawning</label>
-    <label><input type="checkbox" id="timeSlowMod" onchange="toggleMod('timeSlow', this.checked)"> Time Slow</label>
-    <label>Time Scale: <input type="range" id="timeScale" min="0.5" max="1" value="1" step="0.1" onchange="setTimeScale(this.value)"></label>
-    <button onclick="closeModMenu()">Close Menu</button>
-</div>
-<script>
-let player;
-let enemies = [];
-let bullets = [];
-let powerUps = [];
-let terrain = [];
-let traps = [];
-let particles = [];
-let mapWidth = 4000;
-let mapHeight = 3000;
-let cameraX = 0;
-let cameraY = 0;
-let gameState = 'loading';
-let loadingStartTime;
-let playerColor = '50,50,255';
-let username = 'Player';
-let selectedColor = '50,50,255';
-let mods = {
-    aimbot: false,
-    tracers: false,
-    godMode: false,
-    infiniteAmmo: false,
-    speedHack: false,
-    damageMultiplier: false,
-    esp: false,
-    rapidFire: false,
-    wallhack: false,
-    autoReload: false,
-    healthRegen: false,
-    enemyFreeze: false,
-    fov: false,
-    teleport: false,
-    superSize: false,
-    bulletPenetration: false,
-    enemySpawn: true,
-    timeSlow: false
-};
-let modSettings = {
-    tracerColor: '255,0,0',
-    speedMultiplier: 1,
-    damageMultiplier: 1,
-    fovMultiplier: 1,
-    sizeMultiplier: 1,
-    timeScale: 1
-};
-let modMenuOpen = false;
-let lastShotTime = 0;
-let feedbackText = '';
-let feedbackTimer = 0;
-let scoreStreak = 0;
-let lastDamageTaken = 0;
-let teleportCooldown = 0;
+    <div id="weaponMenu">
+        <div>1: Pistol</div>
+        <div>2: Rifle</div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/controls/PointerLockControls.js"></script>
+    <script>
+        // Scene setup
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
 
-function selectColor(rgb) {
-    selectedColor = rgb;
-}
+        // Player setup
+        const controls = new THREE.PointerLockControls(camera, renderer.domElement);
+        document.addEventListener('click', () => controls.lock());
+        camera.position.y = 1;
 
-function startGame() {
-    let input = document.getElementById('username');
-    username = input.value.trim() || 'Player';
-    document.getElementById('startScreen').style.display = 'none';
-    gameState = 'playing';
-}
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0x404040);
+        scene.add(ambientLight);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+        directionalLight.position.set(0, 1, 0);
+        scene.add(directionalLight);
 
-function toggleMod(mod, enabled) {
-    mods[mod] = enabled;
-}
+        // Ground
+        const groundGeometry = new THREE.PlaneGeometry(100, 100);
+        const groundMaterial = new THREE.MeshBasicMaterial({ color: 0x555555 });
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2;
+        scene.add(ground);
 
-function setTracerColor(color) {
-    modSettings.tracerColor = color;
-}
+        // Obstacles
+        const obstacles = [];
+        const obstacleGeometry = new THREE.BoxGeometry(2, 2, 2);
+        const obstacleMaterial = new THREE.MeshBasicMaterial({ color: 0x888888 });
+        for (let i = 0; i < 10; i++) {
+            const obstacle = new THREE.Mesh(obstacleGeometry, obstacleMaterial);
+            obstacle.position.set(
+                (Math.random() - 0.5) * 80,
+                1,
+                (Math.random() - 0.5) * 80
+            );
+            scene.add(obstacle);
+            obstacles.push(obstacle);
+        }
 
-function setSpeedMultiplier(value) {
-    modSettings.speedMultiplier = parseFloat(value);
-}
+        // Player stats
+        let health = 100;
+        let weapons = [
+            { name: 'Pistol', ammo: 30, damage: 10, fireRate: 500 },
+            { name: 'Rifle', ammo: 60, damage: 20, fireRate: 200 }
+        ];
+        let currentWeapon = 0;
+        let lastShot = 0;
 
-function setDamageMultiplier(value) {
-    modSettings.damageMultiplier = parseFloat(value);
-}
+        // AI Enemies
+        const enemies = [];
+        const enemyGeometry = new THREE.BoxGeometry(1, 2, 1);
+        const enemyMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        for (let i = 0; i < 5; i++) {
+            const enemy = new THREE.Mesh(enemyGeometry, enemyMaterial);
+            enemy.position.set(
+                (Math.random() - 0.5) * 80,
+                1,
+                (Math.random() - 0.5) * 80
+            );
+            enemy.health = 50;
+            enemy.speed = 0.05;
+            scene.add(enemy);
+            enemies.push(enemy);
+        }
 
-function setFovMultiplier(value) {
-    modSettings.fovMultiplier = parseFloat(value);
-}
+        // Controls
+        const keys = {};
+        document.addEventListener('keydown', (e) => { keys[e.code] = true; });
+        document.addEventListener('keyup', (e) => { keys[e.code] = false; });
 
-function setSizeMultiplier(value) {
-    modSettings.sizeMultiplier = parseFloat(value);
-}
+        // Weapon switching
+        document.addEventListener('keydown', (e) => {
+            if (e.key === '1') currentWeapon = 0;
+            if (e.key === '2') currentWeapon = 1;
+            document.getElementById('weapon').textContent = weapons[currentWeapon].name;
+            document.getElementById('ammo').textContent = weapons[currentWeapon].ammo;
+        });
 
-function setTimeScale(value) {
-    modSettings.timeScale = parseFloat(value);
-}
+        // Shooting
+        document.addEventListener('mousedown', () => {
+            const now = Date.now();
+            if (now - lastShot < weapons[currentWeapon].fireRate || weapons[currentWeapon].ammo <= 0) return;
+            lastShot = now;
+            weapons[currentWeapon].ammo--;
+            document.getElementById('ammo').textContent = weapons[currentWeapon].ammo;
 
-function closeModMenu() {
-    modMenuOpen = false;
-    document.getElementById('modMenu').style.display = 'none';
-}
-
-function copyPlayerImage() {
-    let tempCanvas = createGraphics(player.size * 2, player.size * 2);
-    tempCanvas.push();
-    tempCanvas.translate(player.size, player.size);
-    tempCanvas.rotate(player.angle);
-    tempCanvas.fill(player.col);
-    tempCanvas.ellipse(0, 0, player.size);
-    tempCanvas.fill(0);
-    if (player.weapon === 'pistol') {
-        tempCanvas.rect(player.size / 2 - 10, -5, 20, 10);
-    } else if (player.weapon === 'shotgun') {
-        tempCanvas.rect(player.size / 2 - 15, -10, 30, 20);
-    } else if (player.weapon === 'laser') {
-        tempCanvas.rect(player.size / 2 - 5, -3, 15, 6);
-    }
-    tempCanvas.fill(255, 0, 0);
-    tempCanvas.rect(-player.size / 2, player.size / 2, player.size * (player.health / 100), 5);
-    if (player.shield) {
-        tempCanvas.noFill();
-        tempCanvas.stroke(0, 255, 255);
-        tempCanvas.ellipse(0, 0, player.size + 10);
-    }
-    tempCanvas.pop();
-    tempCanvas.canvas.toBlob(blob => {
-        navigator.clipboard.write([
-            new ClipboardItem({ 'image/png': blob })
-        ]).catch(err => console.error('Failed to copy image:', err));
-    });
-}
-
-class Fighter {
-    constructor(x, y, size, col, isPlayer, type = 'roamer') {
-        this.x = x;
-        this.y = y;
-        this.baseSize = size;
-        this.size = size;
-        this.col = col;
-        this.isPlayer = isPlayer;
-        this.type = type;
-        this.baseSpeed = isPlayer ? 5 : type === 'tank' ? 2 : type === 'shooter' ? 4 : 3;
-        this.speed = this.baseSpeed;
-        this.angle = 0;
-        this.health = isPlayer ? 100 : type === 'tank' ? 200 : 100;
-        this.targetX = random(mapWidth);
-        this.targetY = random(mapHeight);
-        this.changeTargetTimer = random(60, 120);
-        this.weapon = isPlayer ? 'pistol' : 'none';
-        this.baseDamage = isPlayer ? 20 : type === 'tank' ? 15 : type === 'shooter' ? 8 : 10;
-        this.damage = this.baseDamage;
-        this.bulletSpeed = isPlayer ? 10 : 8;
-        this.score = 0;
-        this.ammo = isPlayer ? { pistol: 30, shotgun: 15, laser: 5 } : {};
-        this.maxAmmo = { pistol: 30, shotgun: 15, laser: 5 };
-        this.shield = false;
-        this.damageBoost = false;
-        this.damageBoostTimer = 0;
-        this.invisible = false;
-        this.invisibleTimer = 0;
-    }
-
-    update() {
-        let timeScale = mods.timeSlow ? modSettings.timeScale : 1;
-        if (this.isPlayer) {
-            let dx = 0, dy = 0;
-            if (keyIsDown(65)) dx -= this.speed * timeScale; // A key (left)
-            if (keyIsDown(68)) dx += this.speed * timeScale; // D key (right)
-            if (keyIsDown(87)) dy -= this.speed * timeScale; // W key (up)
-            if (keyIsDown(83)) dy += this.speed * timeScale; // S key (down)
-            let newX = constrain(this.x + dx, 0, mapWidth);
-            let newY = constrain(this.y + dy, 0, mapHeight);
-            if (!this.collides(newX, newY)) {
-                this.x = newX;
-                this.y = newY;
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+            const intersects = raycaster.intersectObjects(enemies);
+            if (intersects.length > 0) {
+                const enemy = intersects[0].object;
+                enemy.health -= weapons[currentWeapon].damage;
+                if (enemy.health <= 0) {
+                    scene.remove(enemy);
+                    enemies.splice(enemies.indexOf(enemy), 1);
+                }
             }
-            if (mods.aimbot && mouseIsPressed && mouseButton === RIGHT) {
-                let nearestEnemy = null;
-                let minDist = Infinity;
-                for (let enemy of enemies) {
-                    let d = dist(this.x, this.y, enemy.x, enemy.y);
-                    if (d < minDist && !this.invisible) {
-                        minDist = d;
-                        nearestEnemy = enemy;
+        });
+
+        // Movement and collision
+        const velocity = new THREE.Vector3();
+        const direction = new THREE.Vector3();
+        const speed = 0.1;
+        const clock = new THREE.Clock();
+
+        function updatePlayer() {
+            const delta = clock.getDelta();
+            velocity.x *= 0.9;
+            velocity.z *= 0.9;
+
+            if (keys['KeyW']) velocity.z -= speed;
+            if (keys['KeyS']) velocity.z += speed;
+            if (keys['KeyA']) velocity.x -= speed;
+            if (keys['KeyD']) velocity.x += speed;
+
+            controls.moveRight(velocity.x * delta * 50);
+            controls.moveForward(velocity.z * delta * 50);
+
+            // Simple collision with obstacles
+            const playerPos = controls.getObject().position;
+            obstacles.forEach(obstacle => {
+                const dist = playerPos.distanceTo(obstacle.position);
+                if (dist < 2) {
+                    const repel = playerPos.clone().sub(obstacle.position).normalize().multiplyScalar(0.1);
+                    controls.getObject().position.add(repel);
+                }
+            });
+
+            // Keep player in bounds
+            if (playerPos.x > 50) playerPos.x = 50;
+            if (playerPos.x < -50) playerPos.x = -50;
+            if (playerPos.z > 50) playerPos.z = 50;
+            if (playerPos.z < -50) playerPos.z = -50;
+        }
+
+        // AI movement
+        function updateAI() {
+            const playerPos = controls.getObject().position;
+            enemies.forEach(enemy => {
+                const distToPlayer = enemy.position.distanceTo(playerPos);
+                if (distToPlayer < 20) {
+                    // Chase player
+                    const direction = playerPos.clone().sub(enemy.position).normalize();
+                    enemy.position.add(direction.multiplyScalar(enemy.speed));
+                } else {
+                    // Roam randomly
+                    enemy.position.x += (Math.random() - 0.5) * enemy.speed;
+                    enemy.position.z += (Math.random() - 0.5) * enemy.speed;
+                }
+
+                // Simple collision with obstacles
+                obstacles.forEach(obstacle => {
+                    const dist = enemy.position.distanceTo(obstacle.position);
+                    if (dist < 2) {
+                        const repel = enemy.position.clone().sub(obstacle.position).normalize().multiplyScalar(0.1);
+                        enemy.position.add(repel);
+                    }
+                });
+
+                // Damage player if close
+                if (distToPlayer < 2) {
+                    health -= 0.1;
+                    document.getElementById('health').textContent = Math.round(health);
+                    if (health <= 0) {
+                        alert('Game Over!');
+                        health = 100;
+                        document.getElementById('health').textContent = health;
                     }
                 }
-                if (nearestEnemy) {
-                    this.angle = atan2(nearestEnemy.y - this.y, nearestEnemy.x - this.x);
-                    this.shoot();
-                }
-            } else {
-                this.angle = atan2(mouseY + cameraY - this.y, mouseX + cameraX - this.x);
-            }
-            this.speed = mods.speedHack ? this.baseSpeed * modSettings.speedMultiplier : this.baseSpeed;
-            this.size = mods.superSize ? this.baseSize * modSettings.sizeMultiplier : this.baseSize;
-            this.damage = mods.damageMultiplier ? this.baseDamage * modSettings.damageMultiplier : this.baseDamage;
-            if (this.damageBoost && millis() - this.damageBoostTimer > 10000) {
-                this.damageBoost = false;
-            }
-            if (this.invisible && millis() - this.invisibleTimer > 10000) {
-                this.invisible = false;
-            }
-            if (mods.healthRegen && frameCount % 60 === 0) {
-                this.health = min(this.health + 5, 100);
-            }
-            if (mods.autoReload && this.ammo[this.weapon] === 0) {
-                this.reload();
-            }
+            });
         }
-    }
 
-    aiMove(player) {
-        if (mods.enemyFreeze || player.invisible) return;
-        let timeScale = mods.timeSlow ? modSettings.timeScale : 1;
-        if (this.type === 'roamer') {
-            this.changeTargetTimer--;
-            if (this.changeTargetTimer <= 0) {
-                this.targetX = random(mapWidth);
-                this.targetY = random(mapHeight);
-                this.changeTargetTimer = random(60, 120);
-            }
-            let angle = atan2(this.targetY - this.y, this.targetX - this.x);
-            let newX = this.x + cos(angle) * this.speed * 0.5 * timeScale;
-            let newY = this.y + sin(angle) * this.speed * 0.5 * timeScale;
-            if (!this.collides(newX, newY)) {
-                this.x = newX;
-                this.y = newY;
-            }
-            this.angle = angle;
-        } else if (this.type === 'chaser') {
-            let angle = atan2(player.y - this.y, player.x - this.x);
-            let newX = this.x + cos(angle) * this.speed * timeScale;
-            let newY = this.y + sin(angle) * this.speed * timeScale;
-            if (!this.collides(newX, newY)) {
-                this.x = newX;
-                this.y = newY;
-            }
-            this.angle = angle;
-        } else if (this.type === 'sniper') {
-            this.angle = atan2(player.y - this.y, player.x - this.x);
-        } else if (this.type === 'bomber') {
-            let angle = atan2(player.y - this.y, player.x - this.x);
-            let newX = this.x + cos(angle) * this.speed * 0.7 * timeScale;
-            let newY = this.y + sin(angle) * this.speed * 0.7 * timeScale;
-            if (!this.collides(newX, newY)) {
-                this.x = newX;
-                this.y = newY;
-            }
-            this.angle = angle;
-        } else if (this.type === 'tank') {
-            let angle = atan2(player.y - this.y, player.x - this.x);
-            let newX = this.x + cos(angle) * this.speed * timeScale;
-            let newY = this.y + sin(angle) * this.speed * timeScale;
-            if (!this.collides(newX, newY)) {
-                this.x = newX;
-                this.y = newY;
-            }
-            this.angle = angle;
-        } else if (this.type === 'shooter') {
-            let angle = atan2(player.y - this.y, player.x - this.x);
-            let newX = this.x + cos(angle) * this.speed * timeScale;
-            let newY = this.y + sin(angle) * this.speed * timeScale;
-            if (!this.collides(newX, newY)) {
-                this.x = newX;
-                this.y = newY;
-            }
-            this.angle = angle;
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            updatePlayer();
+            updateAI();
+            renderer.render(scene, camera);
         }
-    }
+        animate();
 
-    collides(x, y) {
-        for (let t of terrain) {
-            if (t.health <= 0) continue;
-            if (x + this.size / 2 > t.x && x - this.size / 2 < t.x + t.w &&
-                y + this.size / 2 > t.y && y - this.size / 2 < t.y + t.h) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    show() {
-        push();
-        translate(this.x, this.y);
-        rotate(this.angle);
-        if (this.isPlayer && this.invisible) {
-            fill(red(this.col), green(this.col), blue(this.col), 100);
-        } else if (mods.esp && !this.isPlayer) {
-            stroke(255, 255, 0);
-            strokeWeight(3);
-            fill(this.col);
-            ellipse(0, 0, this.size + 5);
-            noStroke();
-        } else {
-            fill(this.col);
-            ellipse(0, 0, this.size);
-        }
-        fill(0);
-        if (this.weapon === 'pistol') {
-            rect(this.size / 2 - 10, -5, 20, 10);
-        } else if (this.weapon === 'shotgun') {
-            rect(this.size / 2 - 15, -10, 30, 20);
-        } else if (this.weapon === 'laser') {
-            rect(this.size / 2 - 5, -3, 15, 6);
-        }
-        fill(255, 0, 0);
-        rect(-this.size / 2, this.size / 2, this.size * (this.health / 100), 5);
-        if (this.shield) {
-            noFill();
-            stroke(0, 255, 255);
-            ellipse(0, 0, this.size + 10);
-            noStroke();
-        }
-        pop();
-        if (!this.isPlayer) {
-            fill(255);
-            textSize(12);
-            textAlign(CENTER);
-            text(this.type.charAt(0).toUpperCase() + this.type.slice(1), this.x, this.y - this.size / 2 - 10);
-        }
-    }
-
-    takeDamage(amount) {
-        if (this.isPlayer && (mods.godMode || this.shield)) {
-            if (this.shield) this.shield = false;
-            return;
-        }
-        this.health -= amount;
-        if (this.isPlayer) {
-            lastDamageTaken = millis();
-            scoreStreak = 0;
-        }
-        if (this.isPlayer && this.health <= 0) {
-            this.health = 100;
-            this.x = mapWidth / 2;
-            this.y = mapHeight / 2;
-            this.ammo = { pistol: 30, shotgun: 15, laser: 5 };
-            this.shield = false;
-            this.damageBoost = false;
-            this.invisible = false;
-        } else if (!this.isPlayer && this.health <= 0) {
-            if (this.type === 'bomber') {
-                for (let i = 0; i < 30; i++) {
-                    particles.push(new Particle(this.x, this.y, random(TWO_PI), random(2, 6), color(random(255), random(100, 255), 0)));
-                }
-                if (dist(this.x, this.y, player.x, player.y) < 100 && !player.invisible) {
-                    player.takeDamage(30);
-                }
-            }
-            let scoreGain = 100 * (mods.damageMultiplier ? modSettings.damageMultiplier : 1) * (1 + min(scoreStreak * 0.5, 5));
-            player.score += scoreGain;
-            scoreStreak++;
-        }
-    }
-
-    setWeapon(weapon, damage, bulletSpeed) {
-        this.weapon = weapon;
-        this.baseDamage = damage;
-        this.damage = mods.damageMultiplier ? this.baseDamage * modSettings.damageMultiplier : this.baseDamage;
-        this.bulletSpeed = bulletSpeed;
-    }
-
-    shoot() {
-        let cooldown = mods.rapidFire ? 50 : 200;
-        if ((this.ammo[this.weapon] > 0 || mods.infiniteAmmo) && millis() - lastShotTime > cooldown) {
-            bullets.push(new Bullet(this.x, this.y, this.angle, true));
-            if (!mods.infiniteAmmo) {
-                this.ammo[this.weapon]--;
-            }
-            lastShotTime = millis();
-            feedbackText = 'Shot!';
-            feedbackTimer = millis();
-            for (let i = 0; i < 5; i++) {
-                particles.push(new Particle(this.x + cos(this.angle) * this.size / 2, this.y + sin(this.angle) * this.size / 2, this.angle + random(-0.5, 0.5), random(2, 4), color(255, 255, 0)));
-            }
-        }
-    }
-
-    reload() {
-        this.ammo[this.weapon] = this.maxAmmo[this.weapon];
-        feedbackText = 'Reloaded!';
-        feedbackTimer = millis();
-    }
-
-    teleport() {
-        if (millis() - teleportCooldown < 5000) return;
-        let newX, newY, attempts = 0;
-        do {
-            newX = random(mapWidth);
-            newY = random(mapHeight);
-            attempts++;
-        } while (this.collides(newX, newY) && attempts < 10);
-        if (!this.collides(newX, newY)) {
-            this.x = newX;
-            this.y = newY;
-            teleportCooldown = millis();
-            feedbackText = 'Teleported!';
-            feedbackTimer = millis();
-            for (let i = 0; i < 20; i++) {
-                particles.push(new Particle(this.x, this.y, random(TWO_PI), random(1, 3), color(0, 255, 255)));
-            }
-        }
-    }
-}
-
-class Bullet {
-    constructor(x, y, angle, isPlayerBullet) {
-        this.x = x;
-        this.y = y;
-        this.angle = angle;
-        this.speed = isPlayerBullet ? (player.weapon === 'pistol' ? 10 : player.weapon === 'shotgun' ? 5 : 15) : 8;
-        this.isPlayerBullet = isPlayerBullet;
-        this.col = isPlayerBullet ? (player.weapon === 'laser' ? color(255, 0, 255) : color(0, 0, 255)) : color(255, 0, 0);
-    }
-
-    update() {
-        let timeScale = mods.timeSlow ? modSettings.timeScale : 1;
-        this.x += cos(this.angle) * this.speed * timeScale;
-        this.y += sin(this.angle) * this.speed * timeScale;
-    }
-
-    show() {
-        fill(this.col);
-        ellipse(this.x, this.y, 10);
-    }
-
-    offscreen() {
-        return this.x < 0 || this.x > mapWidth || this.y < 0 || this.y > mapHeight;
-    }
-}
-
-class PowerUp {
-    constructor(x, y) {
-        this.x = x;
-        this.y = y;
-        this.type = random(['health', 'speed', 'damage', 'shield', 'ammo', 'invisible']);
-        this.size = 20;
-    }
-
-    show() {
-        fill(this.type === 'health' ? color(255, 100, 100) : this.type === 'speed' ? color(100, 100, 255) : this.type === 'damage' ? color(255, 50, 255) : this.type === 'shield' ? color(0, 255, 255) : this.type === 'ammo' ? color(200, 200, 200) : color(50, 50, 50));
-        ellipse(this.x, this.y, this.size);
-        fill(0);
-        textAlign(CENTER, CENTER);
-        textSize(12);
-        text(this.type === 'health' ? 'H' : this.type === 'speed' ? 'S' : this.type === 'damage' ? 'D' : this.type === 'shield' ? 'SH' : this.type === 'ammo' ? 'A' : 'I', this.x, this.y);
-    }
-
-    collect(player) {
-        if (dist(this.x, this.y, player.x, player.y) < this.size + player.size / 2) {
-            if (this.type === 'health') {
-                player.health = min(player.health + 50, 100);
-            } else if (this.type === 'speed') {
-                player.speed = min(player.speed + 2, 10);
-                setTimeout(() => player.speed = max(player.speed - 2, 5), 5000);
-            } else if (this.type === 'damage') {
-                player.damageBoost = true;
-                player.damageBoostTimer = millis();
-            } else if (this.type === 'shield') {
-                player.shield = true;
-            } else if (this.type === 'ammo') {
-                player.ammo = { pistol: player.maxAmmo.pistol, shotgun: player.maxAmmo.shotgun, laser: player.maxAmmo.laser };
-            } else if (this.type === 'invisible') {
-                player.invisible = true;
-                player.invisibleTimer = millis();
-            }
-            player.score += 100 * (mods.damageMultiplier ? modSettings.damageMultiplier : 1) * (1 + min(scoreStreak * 0.5, 5));
-            feedbackText = `${this.type.charAt(0).toUpperCase() + this.type.slice(1)} Collected!`;
-            feedbackTimer = millis();
-            for (let i = 0; i < 10; i++) {
-                particles.push(new Particle(this.x, this.y, random(TWO_PI), random(1, 3), color(random(255), random(255), random(255))));
-            }
-            return true;
-        }
-        return false;
-    }
-}
-
-class Particle {
-    constructor(x, y, angle, speed, col) {
-        this.x = x;
-        this.y = y;
-        this.angle = angle;
-        this.speed = speed;
-        this.col = col;
-        this.life = random(20, 40);
-        this.size = random(3, 8);
-    }
-
-    update() {
-        let timeScale = mods.timeSlow ? modSettings.timeScale : 1;
-        this.x += cos(this.angle) * this.speed * timeScale;
-        this.y += sin(this.angle) * this.speed * timeScale;
-        this.life--;
-    }
-
-    show() {
-        fill(red(this.col), green(this.col), blue(this.col), map(this.life, 0, 40, 0, 255));
-        ellipse(this.x, this.y, this.size);
-    }
-}
-
-class Trap {
-    constructor(x1, y1, x2, y2) {
-        this.x1 = x1;
-        this.y1 = y1;
-        this.x2 = x2;
-        this.y2 = y2;
-        this.speed = 2;
-        this.progress = 0;
-        this.direction = 1;
-    }
-
-    update() {
-        let timeScale = mods.timeSlow ? modSettings.timeScale : 1;
-        this.progress += this.speed * timeScale * this.direction / dist(this.x1, this.y1, this.x2, this.y2);
-        if (this.progress >= 1 || this.progress <= 0) this.direction *= -1;
-        this.progress = constrain(this.progress, 0, 1);
-        let currentX = lerp(this.x1, this.x2, this.progress);
-        let currentY = lerp(this.y1, this.y2, this.progress);
-        if (dist(currentX, currentY, player.x, player.y) < 20 && !player.invisible) {
-            player.takeDamage(20);
-            for (let i = 0; i < 10; i++) {
-                particles.push(new Particle(currentX, currentY, random(TWO_PI), random(1, 3), color(255, 0, 0)));
-            }
-        }
-    }
-
-    show() {
-        stroke(255, 0, 0);
-        strokeWeight(5);
-        line(this.x1, this.y1, this.x2, this.y2);
-        let currentX = lerp(this.x1, this.x2, this.progress);
-        let currentY = lerp(this.y1, this.y2, this.progress);
-        fill(255, 0, 0);
-        ellipse(currentX, currentY, 10);
-        noStroke();
-    }
-}
-
-function setup() {
-    createCanvas(windowWidth, windowHeight);
-    colorMode(HSB, 360, 100, 100);
-    loadingStartTime = millis();
-    playerColor = color(...selectedColor.split(',').map(Number));
-    colorMode(RGB);
-}
-
-function windowResized() {
-    resizeCanvas(windowWidth, windowHeight);
-}
-
-function draw() {
-    if (gameState === 'loading') {
-        background(0);
-        fill(255);
-        textSize(36);
-        textAlign(CENTER, CENTER);
-        text('Loading...', width / 2, height / 2);
-        document.getElementById('startScreen').innerHTML = `
-            <h1 id="loadingText">Loading...</h1>
-        `;
-        if (millis() - loadingStartTime > 2000) {
-            gameState = 'start';
-            document.getElementById('startScreen').innerHTML = `
-                <h1>2D Fighting Arena</h1>
-                <input type="text" id="username" placeholder="Enter Username" maxlength="15">
-                <h3>Choose Your Color</h3>
-                <div id="colorPicker">
-                    <div class="colorOption" style="background-color: rgb(50, 50, 255);" onclick="selectColor('50,50,255')"></div>
-                    <div class="colorOption" style="background-color: rgb(255, 50, 50);" onclick="selectColor('255,50,50')"></div>
-                    <div class="colorOption" style="background-color: rgb(50, 255, 50);" onclick="selectColor('50,255,50')"></div>
-                    <div class="colorOption" style="background-color: rgb(255, 255, 50);" onclick="selectColor('255,255,50')"></div>
-                </div>
-                <button onclick="startGame()">Enter Arena</button>
-            `;
-            player = new Fighter(mapWidth / 2, mapHeight / 2, 40, playerColor, true);
-            for (let i = 0; i < 20; i++) {
-                let type = random(['roamer', 'chaser', 'sniper', 'bomber', 'tank', 'shooter']);
-                enemies.push(new Fighter(random(mapWidth), random(mapHeight), type === 'tank' ? 60 : 40, type === 'roamer' ? color(255, 50, 50) : type === 'chaser' ? color(50, 255, 50) : type === 'sniper' ? color(255, 255, 50) : type === 'bomber' ? color(255, 100, 0) : type === 'tank' ? color(100, 100, 100) : color(200, 50, 200), false, type));
-            }
-            for (let i = 0; i < 50; i++) {
-                terrain.push({x: random(mapWidth), y: random(mapHeight), w: random(30, 100), h: random(30, 100), health: random() > 0.5 ? 100 : Infinity});
-            }
-            for (let i = 0; i < 12; i++) {
-                powerUps.push(new PowerUp(random(mapWidth), random(mapHeight)));
-            }
-            for (let i = 0; i < 5; i++) {
-                let x1 = random(mapWidth), y1 = random(mapHeight);
-                let x2 = x1 + random(-200, 200), y2 = y1 + random(-200, 200);
-                traps.push(new Trap(x1, y1, x2, y2));
-            }
-        }
-    } else if (gameState === 'start') {
-        // Start screen handled by HTML
-    } else if (gameState === 'playing') {
-        let timeScale = mods.timeSlow ? modSettings.timeScale : 1;
-        // Apply FOV scaling
-        let fovScale = mods.fov ? modSettings.fovMultiplier : 1;
-        let scaledWidth = windowWidth / fovScale;
-        let scaledHeight = windowHeight / fovScale;
-        background(100, 150, 100);
-        // Draw dynamic lighting
-        let flicker = sin(millis() / 500) * 0.1 + 0.9;
-        let gradient = drawingContext.createRadialGradient(player.x - cameraX, player.y - cameraY, 0, player.x - cameraX, player.y - cameraY, 400);
-        gradient.addColorStop(0, `rgba(255, 255, 255, ${0.3 * flicker})`);
-        gradient.addColorStop(1, 'rgba(0, 0, 0, 0.6)');
-        drawingContext.fillStyle = gradient;
-        drawingContext.fillRect(cameraX, cameraY, scaledWidth, scaledHeight);
-        // Draw grid background
-        stroke(255, 255, 255, 50);
-        for (let x = 0; x < mapWidth; x += 50) {
-            line(x, 0, x, mapHeight);
-        }
-        for (let y = 0; y < mapHeight; y += 50) {
-            line(0, y, mapWidth, y);
-        }
-        noStroke();
-        cameraX = constrain(player.x - scaledWidth / 2, 0, mapWidth - scaledWidth);
-        cameraY = constrain(player.y - scaledHeight / 2, 0, mapHeight - scaledHeight);
-        push();
-        translate(-cameraX, -cameraY);
-        scale(fovScale);
-        // Draw terrain with noise texture
-        for (let t of terrain) {
-            if (t.health <= 0) continue;
-            fill(150, 100, 50, mods.wallhack ? 100 : 255);
-            beginShape();
-            for (let x = t.x; x <= t.x + t.w; x += 5) {
-                for (let y = t.y; y <= t.y + t.h; y += 5) {
-                    let n = noise(x * 0.05, y * 0.05) * 20;
-                    fill(150 + n, 100 + n, 50 + n, mods.wallhack ? 100 : 255);
-                    rect(x, y, 5, 5);
-                }
-            }
-            endShape();
-            if (t.health < Infinity) {
-                fill(255, 0, 0);
-                rect(t.x, t.y - 10, t.w * (t.health / 100), 5);
-            }
-        }
-        // Draw tracers
-        if (mods.tracers) {
-            strokeWeight(2);
-            if (modSettings.tracerColor === 'rainbow') {
-                colorMode(HSB, 360, 100, 100);
-                let hue = (millis() % 2000) / 2000 * 360;
-                stroke(hue, 100, 100, 0.7);
-                colorMode(RGB);
-            } else {
-                stroke(...modSettings.tracerColor.split(',').map(Number), 100);
-            }
-            for (let enemy of enemies) {
-                if (!player.invisible) {
-                    line(player.x, player.y, enemy.x, enemy.y);
-                }
-            }
-            noStroke();
-        }
-        // Update and display traps
-        for (let trap of traps) {
-            trap.update();
-            trap.show();
-        }
-        // Update and display power-ups
-        for (let i = powerUps.length - 1; i >= 0; i--) {
-            powerUps[i].show();
-            if (powerUps[i].collect(player)) {
-                powerUps.splice(i, 1);
-                powerUps.push(new PowerUp(random(mapWidth), random(mapHeight)));
-            }
-        }
-        // Update and display player
-        player.update();
-        player.show();
-        // Update and display enemies
-        for (let i = enemies.length - 1; i >= 0; i--) {
-            let enemy = enemies[i];
-            enemy.aiMove(player);
-            enemy.update();
-            enemy.show();
-            if (enemy.type === 'sniper' && dist(player.x, player.y, enemy.x, enemy.y) < 300 && frameCount % 90 === 0 && !mods.enemyFreeze && !player.invisible) {
-                bullets.push(new Bullet(enemy.x, enemy.y, atan2(player.y - enemy.y, player.x - enemy.x), false));
-            } else if (enemy.type === 'shooter' && dist(player.x, player.y, enemy.x, enemy.y) < 400 && frameCount % 30 === 0 && !mods.enemyFreeze && !player.invisible) {
-                bullets.push(new Bullet(enemy.x, enemy.y, atan2(player.y - player.y, player.x - enemy.x), false));
-            } else if (dist(player.x, player.y, enemy.x, enemy.y) < 60 && frameCount % 60 === 0 && !mods.enemyFreeze && !player.invisible) {
-                player.takeDamage(enemy.type === 'tank' ? 15 : 10);
-            }
-            if (dist(player.x, player.y, enemy.x, enemy.y) < 60 && frameCount % 60 === 0) {
-                let damage = player.damageBoost ? player.damage * 2 : player.damage;
-                enemy.takeDamage(damage);
-                if (enemy.health <= 0 && mods.enemySpawn) {
-                    enemies.splice(i, 1);
-                    enemies.push(new Fighter(random(mapWidth), random(mapHeight), random(['roamer', 'chaser', 'sniper', 'bomber', 'tank', 'shooter']) === 'tank' ? 60 : 40, random(['roamer', 'chaser', 'sniper', 'bomber', 'tank', 'shooter']) === 'roamer' ? color(255, 50, 50) : random(['roamer', 'chaser', 'sniper', 'bomber', 'tank', 'shooter']) === 'chaser' ? color(50, 255, 50) : random(['roamer', 'chaser', 'sniper', 'bomber', 'tank', 'shooter']) === 'sniper' ? color(255, 255, 50) : random(['roamer', 'chaser', 'sniper', 'bomber', 'tank', 'shooter']) === 'bomber' ? color(255, 100, 0) : random(['roamer', 'chaser', 'sniper', 'bomber', 'tank', 'shooter']) === 'tank' ? color(100, 100, 100) : color(200, 50, 200), false, random(['roamer', 'chaser', 'sniper', 'bomber', 'tank', 'shooter'])));
-                }
-            }
-        }
-        // Update and display bullets
-        for (let i = bullets.length - 1; i >= 0; i--) {
-            bullets[i].update();
-            bullets[i].show();
-            if (bullets[i].offscreen()) {
-                bullets.splice(i, 1);
-                continue;
-            }
-            let hitTerrain = false;
-            if (!mods.bulletPenetration) {
-                for (let t of terrain) {
-                    if (t.health <= 0) continue;
-                    if (bullets[i].x > t.x && bullets[i].x < t.x + t.w && bullets[i].y > t.y && bullets[i].y < t.y + t.h) {
-                        if (t.health < Infinity) {
-                            t.health -= bullets[i].isPlayerBullet ? player.damage : 10;
-                            for (let j = 0; j < 5; j++) {
-                                particles.push(new Particle(bullets[i].x, bullets[i].y, random(TWO_PI), random(1, 3), color(150, 100, 50)));
-                            }
-                        }
-                        bullets.splice(i, 1);
-                        hitTerrain = true;
-                        break;
-                    }
-                }
-            }
-            if (hitTerrain) continue;
-            if (bullets[i].isPlayerBullet) {
-                for (let enemy of enemies) {
-                    if (dist(bullets[i].x, bullets[i].y, enemy.x, enemy.y) < 20) {
-                        let damage = player.damageBoost ? player.damage * 2 : player.damage;
-                        enemy.takeDamage(damage * 2);
-                        for (let j = 0; j < 10; j++) {
-                            particles.push(new Particle(bullets[i].x, bullets[i].y, random(TWO_PI), random(2, 5), color(random(255), random(100, 255), 0)));
-                        }
-                        bullets.splice(i, 1);
-                        if (enemy.health <= 0 && mods.enemySpawn) {
-                            enemies.splice(enemies.indexOf(enemy), 1);
-                            enemies.push(new Fighter(random(mapWidth), random(mapHeight), random(['roamer', 'chaser', 'sniper', 'bomber', 'tank', 'shooter']) === 'tank' ? 60 : 40, random(['roamer', 'chaser', 'sniper', 'bomber', 'tank', 'shooter']) === 'roamer' ? color(255, 50, 50) : random(['roamer', 'chaser', 'sniper', 'bomber', 'tank', 'shooter']) === 'chaser' ? color(50, 255, 50) : random(['roamer', 'chaser', 'sniper', 'bomber', 'tank', 'shooter']) === 'sniper' ? color(255, 255, 50) : random(['roamer', 'chaser', 'sniper', 'bomber', 'tank', 'shooter']) === 'bomber' ? color(255, 100, 0) : random(['roamer', 'chaser', 'sniper', 'bomber', 'tank', 'shooter']) === 'tank' ? color(100, 100, 100) : color(200, 50, 200), false, random(['roamer', 'chaser', 'sniper', 'bomber', 'tank', 'shooter'])));
-                        }
-                        break;
-                    }
-                }
-            } else {
-                if (dist(bullets[i].x, bullets[i].y, player.x, player.y) < 20 && !player.invisible) {
-                    player.takeDamage(20);
-                    for (let j = 0; j < 10; j++) {
-                        particles.push(new Particle(bullets[i].x, bullets[i].y, random(TWO_PI), random(2, 5), color(255, 0, 0)));
-                    }
-                    bullets.splice(i, 1);
-                }
-            }
-        }
-        // Update and display particles
-        for (let i = particles.length - 1; i >= 0; i--) {
-            particles[i].update();
-            particles[i].show();
-            if (particles[i].life <= 0) {
-                particles.splice(i, 1);
-            }
-        }
-        pop();
-        // Display HUD
-        fill(255);
-        textSize(16);
-        text(`Health: ${player.health}`, 10, 20);
-        text(`Weapon: ${player.weapon}`, 10, 40);
-        text(`Ammo: ${player.ammo[player.weapon]}/${player.maxAmmo[player.weapon]}`, 10, 60);
-        text(`Score: ${player.score}`, 10, 80);
-        text(`Streak: ${scoreStreak}x`, 10, 100);
-        text(`Player: ${username}`, 10, 120);
-        if (player.shield) text('Shield: Active', 10, 140);
-        if (player.damageBoost) text('Damage Boost: Active', 10, 160);
-        if (player.invisible) text('Invisible: Active', 10, 180);
-        if (feedbackText && millis() - feedbackTimer < 1000) {
-            textSize(20);
-            text(feedbackText, width / 2, height - 50);
-        }
-    }
-}
-
-function mousePressed() {
-    if (gameState === 'playing' && !modMenuOpen) {
-        if (mouseButton === LEFT) {
-            player.shoot();
-        } else if (mouseButton === RIGHT && !mods.aimbot) {
-            copyPlayerImage();
-        }
-    }
-}
-
-function keyPressed() {
-    if (gameState === 'playing') {
-        if (key === 'm' || key === 'M') {
-            modMenuOpen = !modMenuOpen;
-            document.getElementById('modMenu').style.display = modMenuOpen ? 'flex' : 'none';
-        } else if (key === '1') {
-            player.setWeapon('pistol', 20, 10);
-        } else if (key === '2') {
-            player.setWeapon('shotgun', 40, 5);
-        } else if (key === '3') {
-            player.setWeapon('laser', 60, 15);
-        } else if (key === 'r' || key === 'R') {
-            player.reload();
-        } else if (key === 't' || key === 'T' && mods.teleport) {
-            player.teleport();
-        }
-    }
-}
-</script>
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
 </body>
 </html>
