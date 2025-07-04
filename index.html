@@ -959,8 +959,8 @@
             let moveSpeed = (keys['ShiftLeft'] ? baseSpeed * 1.5 : baseSpeed) * modSettings.speedHack;
             playerHeight = keys['ControlLeft'] ? 1.0 : 1.6;
             camera.position.y += (playerHeight - camera.position.y) * 0.1;
-            if (keys['KeyW']) velocity.z -= moveSpeed; // Move forward
-            if (keys['KeyS']) velocity.z += moveSpeed; // Move backward
+            if (keys['KeyW']) velocity.z += moveSpeed; // Move forward
+            if (keys['KeyS']) velocity.z -= moveSpeed; // Move backward
             if (keys['KeyA']) velocity.x -= moveSpeed;
             if (keys['KeyD']) velocity.x += moveSpeed;
             controls.moveRight(velocity.x * delta * 50);
