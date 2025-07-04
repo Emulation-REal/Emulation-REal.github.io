@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ultimate 3D Shooter Game with Mod Menu</title>
+    <title>Ultimate 3D Shooter Game</title>
     <style>
         body { margin: 0; overflow: hidden; }
         canvas { display: block; }
@@ -95,37 +95,70 @@
             position: absolute;
             top: 50%;
             left: 50%;
-            transform: translate(-50%, -50%) translateX(100%);
-            width: 300px;
-            background: rgba(20, 20, 20, 0.95);
-            border: 2px solid #0f0;
-            border-radius: 10px;
-            padding: 15px;
+            transform: translate(-50%, -50%);
+            width: 350px;
+            background: rgba(10, 10, 10, 0.95);
+            border: 2px solid #00ff00;
+            border-radius: 12px;
+            padding: 20px;
             color: #ffffff;
             font-family: 'Roboto', sans-serif;
             font-size: 14px;
-            box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
-            transition: transform 0.3s ease;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.7);
+            display: none;
             z-index: 1000;
             pointer-events: auto;
         }
         #modMenu.open {
-            transform: translate(-50%, -50%);
+            display: block;
         }
         #modMenu h2 {
-            margin: 0 0 10px;
+            margin: 0 0 15px;
             text-align: center;
-            color: #0f0;
-            text-shadow: 0 0 5px #0f0;
+            color: #00ff00;
+            text-shadow: 0 0 8px #00ff00;
+            font-size: 20px;
+        }
+        .mod-section {
+            margin-bottom: 15px;
+        }
+        .mod-section h3 {
+            margin: 0 0 10px;
+            color: #00ff00;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .mod-section h3::after {
+            content: '▼';
+            transition: transform 0.3s;
+        }
+        .mod-section.collapsed h3::after {
+            transform: rotate(180deg);
+        }
+        .mod-section-content {
+            display: block;
+            transition: max-height 0.3s ease;
+            max-height: 500px;
+            overflow: hidden;
+        }
+        .mod-section.collapsed .mod-section-content {
+            max-height: 0;
         }
         .mod-option {
             margin: 8px 0;
             display: flex;
             align-items: center;
             justify-content: space-between;
+            transition: transform 0.2s;
+        }
+        .mod-option:hover {
+            transform: scale(1.02);
         }
         .mod-option label {
             flex: 1;
+            color: #ffffff;
         }
         .mod-option input[type="checkbox"] {
             appearance: none;
@@ -136,9 +169,10 @@
             position: relative;
             cursor: pointer;
             outline: none;
+            transition: background 0.2s;
         }
         .mod-option input[type="checkbox"]:checked {
-            background: #0f0;
+            background: #00ff00;
         }
         .mod-option input[type="checkbox"]::before {
             content: '';
@@ -156,19 +190,36 @@
         }
         .mod-option input[type="range"] {
             width: 100px;
-            accent-color: #0f0;
+            accent-color: #00ff00;
+            cursor: pointer;
         }
         .mod-option button {
-            background: #0f0;
+            background: #00ff00;
             border: none;
             color: #000;
             padding: 5px 10px;
             border-radius: 5px;
             cursor: pointer;
             font-weight: bold;
+            transition: background 0.2s;
         }
         .mod-option button:hover {
             background: #00cc00;
+        }
+        #closeMenu, #resetMods {
+            display: block;
+            margin: 15px auto 0;
+            background: #ff0000;
+            color: #fff;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            text-align: center;
+            transition: background 0.2s;
+        }
+        #closeMenu:hover, #resetMods:hover {
+            background: #cc0000;
         }
     </style>
 </head>
@@ -186,64 +237,81 @@
         <div>Score: <span id="score">0</span></div>
         <div>Wave: <span id="wave">1</span></div>
         <div>Enemies Left: <span id="enemiesLeft">0</span></div>
-        <div>Controls: 1-6: Weapons, R: Reload, Shift: Sprint, Ctrl: Crouch, ;: Mod Menu</div>
+        <div>Controls: 1-6: Weapons, R: Reload, Shift: Sprint, Ctrl: Crouch, ;: Menu</div>
     </div>
     <div id="killFeed"></div>
     <div id="minimap"><canvas id="minimapCanvas"></canvas></div>
     <div id="modMenu">
-        <h2>Mod Menu</h2>
-        <div class="mod-option">
-            <label>ESP</label>
-            <input type="checkbox" id="espToggle">
+        <h2>Control Panel</h2>
+        <div class="mod-section" id="visualsSection">
+            <h3>Visuals</h3>
+            <div class="mod-section-content">
+                <div class="mod-option" title="Show enemy outlines (green for Melee/Shooter, red for Heavy)">
+                    <label>Enemy Highlight</label>
+                    <input type="checkbox" id="espToggle">
+                </div>
+                <div class="mod-option" title="Draw lines to enemies (red for Melee, blue for Shooter, purple for Heavy)">
+                    <label>Enemy Tracers</label>
+                    <input type="checkbox" id="tracersToggle">
+                </div>
+                <div class="mod-option" title="Make obstacles semi-transparent">
+                    <label>Wall Visibility</label>
+                    <input type="checkbox" id="wallhackToggle">
+                </div>
+            </div>
         </div>
-        <div class="mod-option">
-            <label>Aimbot</label>
-            <input type="checkbox" id="aimbotToggle">
+        <div class="mod-section" id="gameplaySection">
+            <h3>Gameplay</h3>
+            <div class="mod-section-content">
+                <div class="mod-option" title="Auto-aim at enemies within FOV (right-click to activate)">
+                    <label>Auto Aim</label>
+                    <input type="checkbox" id="aimbotToggle">
+                </div>
+                <div class="mod-option" title="Adjust auto-aim field of view (10°-180°)">
+                    <label>Auto Aim FOV: <span id="aimbotFovValue">90</span>°</label>
+                    <input type="range" id="aimbotFov" min="10" max="180" value="90">
+                </div>
+                <div class="mod-option" title="Unlimited ammunition">
+                    <label>Infinite Ammo</label>
+                    <input type="checkbox" id="infiniteAmmoToggle">
+                </div>
+                <div class="mod-option" title="No reload delay">
+                    <label>Instant Reload</label>
+                    <input type="checkbox" id="instantReloadToggle">
+                </div>
+                <div class="mod-option" title="Eliminate weapon recoil">
+                    <label>No Recoil</label>
+                    <input type="checkbox" id="noRecoilToggle">
+                </div>
+                <div class="mod-option" title="Freeze enemy movement">
+                    <label>Enemy Freeze</label>
+                    <input type="checkbox" id="enemyFreezeToggle">
+                </div>
+                <div class="mod-option" title="Teleport to a random enemy">
+                    <label>Teleport</label>
+                    <button id="teleportButton">Teleport</button>
+                </div>
+                <div class="mod-option" title="Eliminate all enemies in the current wave">
+                    <label>Kill All</label>
+                    <button id="killAllButton">Kill All</button>
+                </div>
+            </div>
         </div>
-        <div class="mod-option">
-            <label>Aimbot FOV: <span id="aimbotFovValue">90</span>°</label>
-            <input type="range" id="aimbotFov" min="10" max="180" value="90">
+        <div class="mod-section" id="movementSection">
+            <h3>Movement</h3>
+            <div class="mod-section-content">
+                <div class="mod-option" title="Become invulnerable">
+                    <label>Invincibility</label>
+                    <input type="checkbox" id="godModeToggle">
+                </div>
+                <div class="mod-option" title="Adjust movement speed (1x-3x)">
+                    <label>Speed Boost: <span id="speedValue">1</span>x</label>
+                    <input type="range" id="speedHack" min="1" max="3" step="0.1" value="1">
+                </div>
+            </div>
         </div>
-        <div class="mod-option">
-            <label>Tracers</label>
-            <input type="checkbox" id="tracersToggle">
-        </div>
-        <div class="mod-option">
-            <label>Infinite Ammo</label>
-            <input type="checkbox" id="infiniteAmmoToggle">
-        </div>
-        <div class="mod-option">
-            <label>God Mode</label>
-            <input type="checkbox" id="godModeToggle">
-        </div>
-        <div class="mod-option">
-            <label>Speed Hack: <span id="speedValue">1</span>x</label>
-            <input type="range" id="speedHack" min="1" max="3" step="0.1" value="1">
-        </div>
-        <div class="mod-option">
-            <label>No Recoil</label>
-            <input type="checkbox" id="noRecoilToggle">
-        </div>
-        <div class="mod-option">
-            <label>Enemy Freeze</label>
-            <input type="checkbox" id="enemyFreezeToggle">
-        </div>
-        <div class="mod-option">
-            <label>Instant Reload</label>
-            <input type="checkbox" id="instantReloadToggle">
-        </div>
-        <div class="mod-option">
-            <label>Wallhack</label>
-            <input type="checkbox" id="wallhackToggle">
-        </div>
-        <div class="mod-option">
-            <label>Teleport to Enemy</label>
-            <button id="teleportButton">Teleport</button>
-        </div>
-        <div class="mod-option">
-            <label>Kill All</label>
-            <button id="killAllButton">Kill All</button>
-        </div>
+        <button id="resetMods">Reset All</button>
+        <button id="closeMenu">Close</button>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/controls/PointerLockControls.js"></script>
@@ -364,8 +432,7 @@
         muzzleFlash.visible = false;
         gunGeometry.add(barrel, body, muzzleFlash);
         gunGeometry.position.set(0.2, -0.2, -0.5);
-        camera.add(gunGeometry);
-        scene.add(camera);
+        camera.add(gunGeometry); // Attach gun to camera
 
         // Player stats
         let health = 100;
@@ -399,14 +466,14 @@
             wallhack: false
         };
 
-        // Tracers setup (moved early to avoid reference error)
+        // Tracers setup
         const tracers = [];
         const tracerGeometry = new THREE.BufferGeometry();
-        const tracerMaterialMelee = new THREE.LineBasicMaterial({ color: 0xff0000 });
-        const tracerMaterialShooter = new THREE.LineBasicMaterial({ color: 0x0000ff });
-        const tracerMaterialHeavy = new THREE.LineBasicMaterial({ color: 0x800080 });
+        const tracerMaterialMelee = new THREE.LineBasicMaterial({ color: 0xff0000, linewidth: 2 });
+        const tracerMaterialShooter = new THREE.LineBasicMaterial({ color: 0x0000ff, linewidth: 2 });
+        const tracerMaterialHeavy = new THREE.LineBasicMaterial({ color: 0x800080, linewidth: 2 });
 
-        // Mod menu toggle
+        // Menu toggle
         const modMenu = document.getElementById('modMenu');
         document.addEventListener('keydown', (e) => {
             if (e.key === ';') {
@@ -420,7 +487,7 @@
             }
         });
 
-        // Mod controls
+        // Menu controls
         document.getElementById('espToggle').addEventListener('change', (e) => {
             modSettings.esp = e.target.checked;
             updateESP();
@@ -484,6 +551,51 @@
                 }
             });
         });
+        document.getElementById('closeMenu').addEventListener('click', () => {
+            modMenu.classList.remove('open');
+            controls.lock();
+        });
+        document.getElementById('resetMods').addEventListener('click', () => {
+            modSettings = {
+                esp: false,
+                aimbot: false,
+                aimbotFov: 90,
+                tracers: false,
+                infiniteAmmo: false,
+                godMode: false,
+                speedHack: 1,
+                noRecoil: false,
+                enemyFreeze: false,
+                instantReload: false,
+                wallhack: false
+            };
+            document.getElementById('espToggle').checked = false;
+            document.getElementById('aimbotToggle').checked = false;
+            document.getElementById('aimbotFov').value = 90;
+            document.getElementById('aimbotFovValue').textContent = '90';
+            document.getElementById('tracersToggle').checked = false;
+            document.getElementById('infiniteAmmoToggle').checked = false;
+            document.getElementById('godModeToggle').checked = false;
+            document.getElementById('speedHack').value = 1;
+            document.getElementById('speedValue').textContent = '1';
+            document.getElementById('noRecoilToggle').checked = false;
+            document.getElementById('enemyFreezeToggle').checked = false;
+            document.getElementById('instantReloadToggle').checked = false;
+            document.getElementById('wallhackToggle').checked = false;
+            obstacles.forEach(obstacle => {
+                obstacle.material.transparent = false;
+                obstacle.material.opacity = 1;
+            });
+            updateESP();
+            updateTracers();
+        });
+        // Collapsible sections
+        document.querySelectorAll('.mod-section h3').forEach(header => {
+            header.addEventListener('click', () => {
+                const section = header.parentElement;
+                section.classList.toggle('collapsed');
+            });
+        });
 
         // AI Enemies
         const enemies = [];
@@ -538,7 +650,7 @@
                     if (!enemy.dead) {
                         const boxHelper = new THREE.BoxHelper(enemy, enemy.type === 'heavy' ? 0xff0000 : 0x00ff00);
                         boxHelper.material.linewidth = 2;
-                        boxHelper.material.depthTest = false; // Visible through walls
+                        boxHelper.material.depthTest = false;
                         boxHelper.isOutline = true;
                         scene.add(boxHelper);
                     }
@@ -550,7 +662,7 @@
         function updateTracers() {
             tracers.forEach(tracer => scene.remove(tracer));
             tracers.length = 0;
-            if (modSettings.tracers) {
+            if (modSettings.tracers && tracers !== undefined) {
                 enemies.forEach(enemy => {
                     if (!enemy.dead) {
                         const positions = new Float32Array([
@@ -959,8 +1071,8 @@
             let moveSpeed = (keys['ShiftLeft'] ? baseSpeed * 1.5 : baseSpeed) * modSettings.speedHack;
             playerHeight = keys['ControlLeft'] ? 1.0 : 1.6;
             camera.position.y += (playerHeight - camera.position.y) * 0.1;
-            if (keys['KeyW']) velocity.z += moveSpeed; // Move forward
-            if (keys['KeyS']) velocity.z -= moveSpeed; // Move backward
+            if (keys['KeyW']) velocity.z -= moveSpeed; // Move forward
+            if (keys['KeyS']) velocity.z += moveSpeed; // Move backward
             if (keys['KeyA']) velocity.x -= moveSpeed;
             if (keys['KeyD']) velocity.x += moveSpeed;
             controls.moveRight(velocity.x * delta * 50);
@@ -1013,11 +1125,6 @@
             if (playerPos.x < -200) playerPos.x = -200;
             if (playerPos.z > 200) playerPos.z = 200;
             if (playerPos.z < -200) playerPos.z = -200;
-            gunGeometry.position.copy(controls.getObject().position);
-            gunGeometry.position.y = playerHeight - 0.4;
-            gunGeometry.position.x += Math.sin(controls.getObject().rotation.y) * 0.5;
-            gunGeometry.position.z += Math.cos(controls.getObject().rotation.y) * 0.5;
-            gunGeometry.rotation.copy(controls.getObject().rotation);
         }
 
         // AI movement
