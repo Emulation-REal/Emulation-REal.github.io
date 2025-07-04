@@ -107,7 +107,8 @@
             box-shadow: 0 0 20px rgba(0, 255, 0, 0.7);
             display: none;
             z-index: 1000;
-            pointer-events: auto;
+            cursor: move;
+            user-select: none;
         }
         #modMenu.open {
             display: block;
@@ -143,7 +144,7 @@
             max-height: 500px;
             overflow: hidden;
         }
-        .mod-section.collapsed .mod-section-content {
+        .mod-section.collapsed .modpele-section-content {
             max-height: 0;
         }
         .mod-option {
@@ -193,19 +194,6 @@
             accent-color: #00ff00;
             cursor: pointer;
         }
-        .mod-option button {
-            background: #00ff00;
-            border: none;
-            color: #000;
-            padding: 5px 10px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: background 0.2s;
-        }
-        .mod-option button:hover {
-            background: #00cc00;
-        }
         #closeMenu, #resetMods {
             display: block;
             margin: 15px auto 0;
@@ -237,20 +225,20 @@
         <div>Score: <span id="score">0</span></div>
         <div>Wave: <span id="wave">1</span></div>
         <div>Enemies Left: <span id="enemiesLeft">0</span></div>
-        <div>Controls: 1-6: Weapons, R: Reload, Shift: Sprint, Ctrl: Crouch, ;: Menu</div>
+        <div>Controls: 1-6: Weapons, R: Reload, Shift: Sprint, Ctrl: Crouch, Space: Jump, ;: Menu</div>
     </div>
     <div id="killFeed"></div>
     <div id="minimap"><canvas id="minimapCanvas"></canvas></div>
     <div id="modMenu">
         <h2>Control Panel</h2>
-        <div class="mod-section" id="visualsSection">
+        <div class="mod-section collapsed" id="visualsSection">
             <h3>Visuals</h3>
             <div class="mod-section-content">
                 <div class="mod-option" title="Show enemy outlines (green for Melee/Shooter, red for Heavy)">
                     <label>Enemy Highlight</label>
                     <input type="checkbox" id="espToggle">
                 </div>
-                <div class="mod-option" title="Draw lines to enemies (red for Melee, blue for Shooter, purple for Heavy)">
+                <div class="mod-option" title="Draw glowing lines to enemies from crosshair (red for Melee, blue for Shooter, purple for Heavy)">
                     <label>Enemy Tracers</label>
                     <input type="checkbox" id="tracersToggle">
                 </div>
@@ -258,9 +246,13 @@
                     <label>Wall Visibility</label>
                     <input type="checkbox" id="wallhackToggle">
                 </div>
+                <div class="mod-option" title="Show aimbot field of view as a visual cone">
+                    <label>Show Aimbot FOV</label>
+                    <input type="checkbox" id="aimbotFovToggle">
+                </div>
             </div>
         </div>
-        <div class="mod-section" id="gameplaySection">
+        <div class="mod-section collapsed" id="gameplaySection">
             <h3>Gameplay</h3>
             <div class="mod-section-content">
                 <div class="mod-option" title="Auto-aim at enemies within FOV (right-click to activate)">
@@ -275,29 +267,21 @@
                     <label>Infinite Ammo</label>
                     <input type="checkbox" id="infiniteAmmoToggle">
                 </div>
-                <div class="mod-option" title="No reload delay">
-                    <label>Instant Reload</label>
-                    <input type="checkbox" id="instantReloadToggle">
+                <div class="mod-option" title="Shoot faster with all weapons">
+                    <label>Rapid Fire</label>
+                    <input type="checkbox" id="rapidFireToggle">
                 </div>
-                <div class="mod-option" title="Eliminate weapon recoil">
-                    <label>No Recoil</label>
-                    <input type="checkbox" id="noRecoilToggle">
+                <div class="mod-option" title="Kill enemies in one shot">
+                    <label>One-Shot Kill</label>
+                    <input type="checkbox" id="oneShotToggle">
                 </div>
-                <div class="mod-option" title="Freeze enemy movement">
-                    <label>Enemy Freeze</label>
-                    <input type="checkbox" id="enemyFreezeToggle">
-                </div>
-                <div class="mod-option" title="Teleport to a random enemy">
-                    <label>Teleport</label>
-                    <button id="teleportButton">Teleport</button>
-                </div>
-                <div class="mod-option" title="Eliminate all enemies in the current wave">
-                    <label>Kill All</label>
-                    <button id="killAllButton">Kill All</button>
+                <div class="mod-option" title="Prevent enemies from targeting you">
+                    <label>Invisible Player</label>
+                    <input type="checkbox" id="invisibleToggle">
                 </div>
             </div>
         </div>
-        <div class="mod-section" id="movementSection">
+        <div class="mod-section collapsed" id="movementSection">
             <h3>Movement</h3>
             <div class="mod-section-content">
                 <div class="mod-option" title="Become invulnerable">
@@ -307,6 +291,19 @@
                 <div class="mod-option" title="Adjust movement speed (1x-3x)">
                     <label>Speed Boost: <span id="speedValue">1</span>x</label>
                     <input type="range" id="speedHack" min="1" max="3" step="0.1" value="1">
+                </div>
+                <div class="mod-option" title="Increase jump height">
+                    <label>Super Jump</label>
+                    <input type="checkbox" id="superJumpToggle">
+                </div>
+            </div>
+        </div>
+        <div class="mod-section collapsed" id="cheatsSection">
+            <h3>Cheats</h3>
+            <div class="mod-section-content">
+                <div class="mod-option" title="Health/ammo pickups respawn instantly">
+                    <label>Infinite Pickups</label>
+                    <input type="checkbox" id="infinitePickupsToggle">
                 </div>
             </div>
         </div>
@@ -432,7 +429,25 @@
         muzzleFlash.visible = false;
         gunGeometry.add(barrel, body, muzzleFlash);
         gunGeometry.position.set(0.2, -0.2, -0.5);
-        camera.add(gunGeometry); // Attach gun to camera
+        camera.add(gunGeometry);
+
+        // Aimbot FOV visualization
+        let aimbotFovMesh = null;
+        const aimbotFovMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.2, side: THREE.DoubleSide });
+        function updateAimbotFovMesh() {
+            if (aimbotFovMesh) {
+                scene.remove(aimbotFovMesh);
+                aimbotFovMesh = null;
+            }
+            if (modSettings.aimbotFovVisible && modSettings.aimbot) {
+                const fovRad = modSettings.aimbotFov * Math.PI / 180;
+                const geometry = new THREE.ConeGeometry(Math.tan(fovRad / 2) * 10, 10, 32);
+                aimbotFovMesh = new THREE.Mesh(geometry, aimbotFovMaterial);
+                aimbotFovMesh.rotation.x = Math.PI / 2;
+                aimbotFovMesh.position.set(0, 0, -5);
+                camera.add(aimbotFovMesh);
+            }
+        }
 
         // Player stats
         let health = 100;
@@ -441,12 +456,12 @@
         let wave = 1;
         let enemiesLeft = 0;
         let weapons = [
-            { name: 'Pistol', ammo: 30, maxAmmo: 30, damage: 10, fireRate: 500, icon: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M20 6h-4V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H4a1 1 0 0 0-1 1v3h18V7a1 1 0 0 0-1-1zM10 4h4v2h-4V4zM3 11v6a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6H3z"/></svg>' },
-            { name: 'Rifle', ammo: 60, maxAmmo: 60, damage: 20, fireRate: 200, icon: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M22 6h-6V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H2a1 1 0 0 0-1 1v4h22V7a1 1 0 0 0-1-1zM10 4h4v2h-4V4zM1 12v6a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2v-6H1z"/></svg>' },
-            { name: 'Shotgun', ammo: 10, maxAmmo: 10, damage: 15, fireRate: 1000, pellets: 5, icon: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M21 6h-5V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H3a1 1 0 0 0-1 1v5h20V7a1 1 0 0 0-1-1zM10 4h4v2h-4V4zM2 13v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6H2z"/></svg>' },
-            { name: 'Sniper', ammo: 5, maxAmmo: 5, damage: 50, fireRate: 1500, icon: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M22 6h-6V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H2a1 1 0 0 0-1 1v4h22V7a1 1 0 0 0-1-1zM10 4h4v2h-4V4zM1 12v6a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2v-6H1zM12 15l2 2m-2-2l-2 2"/></svg>' },
-            { name: 'Rocket', ammo: 3, maxAmmo: 3, damage: 100, fireRate: 2000, explosionRadius: 5, icon: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M20 6h-4V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H4a1 1 0 0 0-1 1v5h18V7a1 1 0 0 0-1-1zM10 4h4v2h-4V4zM3 13v6a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6H3zM12 16l3 3m-3-3l-3 3"/></svg>' },
-            { name: 'Flamethrower', ammo: 100, maxAmmo: 100, damage: 5, fireRate: 100, range: 10, icon: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M20 6h-4V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H4a1 1 0 0 0-1 1v5h18V7a1 1 0 0 0-1-1zM10 4h4v2h-4V4zM3 13v6a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6H3zM10 15c0 2 4 4 4 4"/></svg>' }
+            { name: 'Pistol', ammo: 30, maxAmmo: 30, baseDamage: 10, fireRate: 500, icon: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M20 6h-4V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H4a1 1 0 0 0-1 1v3h18V7a1 1 0 0 0-1-1zM10 4h4v2h-4V4zM3 11v6a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6H3z"/></svg>' },
+            { name: 'Rifle', ammo: 60, maxAmmo: 60, baseDamage: 20, fireRate: 200, icon: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M22 6h-6V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H2a1 1 0 0 0-1 1v4h22V7a1 1 0 0 0-1-1zM10 4h4v2h-4V4zM1 12v6a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2v-6H1z"/></svg>' },
+            { name: 'Shotgun', ammo: 10, maxAmmo: 10, baseDamage: 15, fireRate: 1000, pellets: 5, icon: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M21 6h-5V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H3a1 1 0 0 0-1 1v5h20V7a1 1 0 0 0-1-1zM10 4h4v2h-4V4zM2 13v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6H2z"/></svg>' },
+            { name: 'Sniper', ammo: 5, maxAmmo: 5, baseDamage: 50, fireRate: 1500, icon: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M22 6h-6V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H2a1 1 0 0 0-1 1v4h22V7a1 1 0 0 0-1-1zM10 4h4v2h-4V4zM1 12v6a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2v-6H1zM12 15l2 2m-2-2l-2 2"/></svg>' },
+            { name: 'Rocket', ammo: 3, maxAmmo: 3, baseDamage: 100, fireRate: 2000, explosionRadius: 5, icon: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M20 6h-4V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H4a1 1 0 0 0-1 1v5h18V7a1 1 0 0 0-1-1zM10 4h4v2h-4V4zM3 13v6a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6H3zM12 16l3 3m-3-3l-3 3"/></svg>' },
+            { name: 'Flamethrower', ammo: 100, maxAmmo: 100, baseDamage: 5, fireRate: 100, range: 10, icon: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M20 6h-4V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H4a1 1 0 0 0-1 1v5h18V7a1 1 0 0 0-1-1zM10 4h4v2h-4V4zM3 13v6a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6H3zM10 15c0 2 4 4 4 4"/></svg>' }
         ];
         let currentWeapon = 0;
         let lastShot = 0;
@@ -456,25 +471,121 @@
             esp: false,
             aimbot: false,
             aimbotFov: 90,
+            aimbotFovVisible: false,
             tracers: false,
             infiniteAmmo: false,
             godMode: false,
             speedHack: 1,
-            noRecoil: false,
-            enemyFreeze: false,
-            instantReload: false,
-            wallhack: false
+            wallhack: false,
+            rapidFire: false,
+            oneShot: false,
+            invisible: false,
+            superJump: false,
+            infinitePickups: false
         };
 
-        // Tracers setup
+        // Tracers setup with glow effect
         const tracers = [];
         const tracerGeometry = new THREE.BufferGeometry();
-        const tracerMaterialMelee = new THREE.LineBasicMaterial({ color: 0xff0000, linewidth: 2 });
-        const tracerMaterialShooter = new THREE.LineBasicMaterial({ color: 0x0000ff, linewidth: 2 });
-        const tracerMaterialHeavy = new THREE.LineBasicMaterial({ color: 0x800080, linewidth: 2 });
+        const tracerMaterialMelee = new THREE.ShaderMaterial({
+            uniforms: {
+                color: { value: new THREE.Color(0xff0000) },
+                glowIntensity: { value: 0.5 }
+            },
+            vertexShader: `
+                varying vec3 vPosition;
+                void main() {
+                    vPosition = position;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform vec3 color;
+                uniform float glowIntensity;
+                varying vec3 vPosition;
+                void main() {
+                    float intensity = glowIntensity * (1.0 - length(vPosition) / 10.0);
+                    gl_FragColor = vec4(color, intensity);
+                }
+            `,
+            transparent: true,
+            linewidth: 3
+        });
+        const tracerMaterialShooter = new THREE.ShaderMaterial({
+            uniforms: {
+                color: { value: new THREE.Color(0x0000ff) },
+                glowIntensity: { value: 0.5 }
+            },
+            vertexShader: `
+                varying vec3 vPosition;
+                void main() {
+                    vPosition = position;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform vec3 color;
+                uniform float glowIntensity;
+                varying vec3 vPosition;
+                void main() {
+                    float intensity = glowIntensity * (1.0 - length(vPosition) / 10.0);
+                    gl_FragColor = vec4(color, intensity);
+                }
+            `,
+            transparent: true,
+            linewidth: 3
+        });
+        const tracerMaterialHeavy = new THREE.ShaderMaterial({
+            uniforms: {
+                color: { value: new THREE.Color(0x800080) },
+                glowIntensity: { value: 0.5 }
+            },
+            vertexShader: `
+                varying vec3 vPosition;
+                void main() {
+                    vPosition = position;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform vec3 color;
+ pressure: 0.5 }
+            `,
+            transparent: true,
+            linewidth: 3
+        });
 
-        // Menu toggle
+        // Menu toggle and drag
         const modMenu = document.getElementById('modMenu');
+        let isDragging = false;
+        let currentX, currentY, initialX, initialY;
+        modMenu.addEventListener('mousedown', (e) => {
+            if (e.target === modMenu || e.target === modMenu.querySelector('h2')) {
+                isDragging = true;
+                initialX = e.clientX - currentX;
+                initialY = e.clientY - currentY;
+                modMenu.style.cursor = 'grabbing';
+            }
+        });
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                e.preventDefault();
+                currentX = e.clientX - initialX;
+                currentY = e.clientY - initialY;
+                modMenu.style.left = `${currentX}px`;
+                modMenu.style.top = `${currentY}px`;
+                modMenu.style.transform = 'none';
+                const rect = modMenu.getBoundingClientRect();
+                if (rect.left < 0) modMenu.style.left = '0px';
+                if (rect.top < 0) modMenu.style.top = '0px';
+                if (rect.right > window.innerWidth) modMenu.style.left = `${window.innerWidth - rect.width}px`;
+                if (rect.bottom > window.innerHeight) modMenu.style.top = `${window.innerHeight - rect.height}px`;
+            }
+        });
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+            modMenu.style.cursor = 'move';
+        });
         document.addEventListener('keydown', (e) => {
             if (e.key === ';') {
                 modMenu.classList.toggle('open');
@@ -483,6 +594,13 @@
                     controls.unlock();
                 } else {
                     controls.lock();
+                }
+                if (modMenu.classList.contains('open')) {
+                    modMenu.style.left = '50%';
+                    modMenu.style.top = '50%';
+                    modMenu.style.transform = 'translate(-50%, -50%)';
+                    currentX = window.innerWidth / 2 - modMenu.offsetWidth / 2;
+                    currentY = window.innerHeight / 2 - modMenu.offsetHeight / 2;
                 }
             }
         });
@@ -494,10 +612,16 @@
         });
         document.getElementById('aimbotToggle').addEventListener('change', (e) => {
             modSettings.aimbot = e.target.checked;
+            updateAimbotFovMesh();
         });
         document.getElementById('aimbotFov').addEventListener('input', (e) => {
             modSettings.aimbotFov = e.target.value;
             document.getElementById('aimbotFovValue').textContent = e.target.value;
+            updateAimbotFovMesh();
+        });
+        document.getElementById('aimbotFovToggle').addEventListener('change', (e) => {
+            modSettings.aimbotFovVisible = e.target.checked;
+            updateAimbotFovMesh();
         });
         document.getElementById('tracersToggle').addEventListener('change', (e) => {
             modSettings.tracers = e.target.checked;
@@ -513,15 +637,6 @@
             modSettings.speedHack = e.target.value;
             document.getElementById('speedValue').textContent = e.target.value;
         });
-        document.getElementById('noRecoilToggle').addEventListener('change', (e) => {
-            modSettings.noRecoil = e.target.checked;
-        });
-        document.getElementById('enemyFreezeToggle').addEventListener('change', (e) => {
-            modSettings.enemyFreeze = e.target.checked;
-        });
-        document.getElementById('instantReloadToggle').addEventListener('change', (e) => {
-            modSettings.instantReload = e.target.checked;
-        });
         document.getElementById('wallhackToggle').addEventListener('change', (e) => {
             modSettings.wallhack = e.target.checked;
             obstacles.forEach(obstacle => {
@@ -529,27 +644,20 @@
                 obstacle.material.opacity = modSettings.wallhack ? 0.3 : 1;
             });
         });
-        document.getElementById('teleportButton').addEventListener('click', () => {
-            const aliveEnemies = enemies.filter(enemy => !enemy.dead);
-            if (aliveEnemies.length > 0) {
-                const target = aliveEnemies[Math.floor(Math.random() * aliveEnemies.length)];
-                controls.getObject().position.copy(target.position);
-                controls.getObject().position.y = playerHeight;
-            }
+        document.getElementById('rapidFireToggle').addEventListener('change', (e) => {
+            modSettings.rapidFire = e.target.checked;
         });
-        document.getElementById('killAllButton').addEventListener('click', () => {
-            enemies.forEach((enemy, i) => {
-                if (!enemy.dead) {
-                    enemy.dead = true;
-                    scene.remove(enemy);
-                    score += enemy.type === 'heavy' ? 50 : 10;
-                    enemiesLeft--;
-                    document.getElementById('score').textContent = score;
-                    document.getElementById('enemiesLeft').textContent = enemiesLeft;
-                    addKillFeed(enemy.type);
-                    setTimeout(() => respawnEnemy(i, enemy.type), 5000);
-                }
-            });
+        document.getElementById('oneShotToggle').addEventListener('change', (e) => {
+            modSettings.oneShot = e.target.checked;
+        });
+        document.getElementById('invisibleToggle').addEventListener('change', (e) => {
+            modSettings.invisible = e.target.checked;
+        });
+        document.getElementById('superJumpToggle').addEventListener('change', (e) => {
+            modSettings.superJump = e.target.checked;
+        });
+        document.getElementById('infinitePickupsToggle').addEventListener('change', (e) => {
+            modSettings.infinitePickups = e.target.checked;
         });
         document.getElementById('closeMenu').addEventListener('click', () => {
             modMenu.classList.remove('open');
@@ -560,36 +668,42 @@
                 esp: false,
                 aimbot: false,
                 aimbotFov: 90,
+                aimbotFovVisible: false,
                 tracers: false,
                 infiniteAmmo: false,
                 godMode: false,
                 speedHack: 1,
-                noRecoil: false,
-                enemyFreeze: false,
-                instantReload: false,
-                wallhack: false
+                wallhack: false,
+                rapidFire: false,
+                oneShot: false,
+                invisible: false,
+                superJump: false,
+                infinitePickups: false
             };
             document.getElementById('espToggle').checked = false;
             document.getElementById('aimbotToggle').checked = false;
             document.getElementById('aimbotFov').value = 90;
             document.getElementById('aimbotFovValue').textContent = '90';
+            document.getElementById('aimbotFovToggle').checked = false;
             document.getElementById('tracersToggle').checked = false;
             document.getElementById('infiniteAmmoToggle').checked = false;
             document.getElementById('godModeToggle').checked = false;
             document.getElementById('speedHack').value = 1;
             document.getElementById('speedValue').textContent = '1';
-            document.getElementById('noRecoilToggle').checked = false;
-            document.getElementById('enemyFreezeToggle').checked = false;
-            document.getElementById('instantReloadToggle').checked = false;
             document.getElementById('wallhackToggle').checked = false;
+            document.getElementById('rapidFireToggle').checked = false;
+            document.getElementById('oneShotToggle').checked = false;
+            document.getElementById('invisibleToggle').checked = false;
+            document.getElementById('superJumpToggle').checked = false;
+            document.getElementById('infinitePickupsToggle').checked = false;
             obstacles.forEach(obstacle => {
                 obstacle.material.transparent = false;
                 obstacle.material.opacity = 1;
             });
             updateESP();
             updateTracers();
+            updateAimbotFovMesh();
         });
-        // Collapsible sections
         document.querySelectorAll('.mod-section h3').forEach(header => {
             header.addEventListener('click', () => {
                 const section = header.parentElement;
@@ -658,15 +772,19 @@
             }
         }
 
-        // Tracers
+        // Tracers (from crosshair with glow)
         function updateTracers() {
-            tracers.forEach(tracer => scene.remove(tracer));
+            tracers.forEach(tracer => {
+                if (tracer) scene.remove(tracer);
+            });
             tracers.length = 0;
-            if (modSettings.tracers && tracers !== undefined) {
+            if (modSettings.tracers) {
                 enemies.forEach(enemy => {
-                    if (!enemy.dead) {
+                    if (!enemy.dead && enemy.position) {
+                        const vector = new THREE.Vector3(0, 0, -0.5);
+                        vector.unproject(camera);
                         const positions = new Float32Array([
-                            controls.getObject().position.x, playerHeight, controls.getObject().position.z,
+                            vector.x, vector.y, vector.z,
                             enemy.position.x, enemy.position.y + (enemy.type === 'heavy' ? 1.25 : 1), enemy.position.z
                         ]);
                         const geometry = tracerGeometry.clone();
@@ -685,15 +803,16 @@
             if (modSettings.aimbot && controls.isLocked && keys['MouseButton2']) {
                 const playerPos = controls.getObject().position;
                 let closestEnemy = null;
-                let minAngle = modSettings.aimbotFov * Math.PI / 180;
+                let minDist = Infinity;
+                const fovRad = modSettings.aimbotFov * Math.PI / 180;
                 enemies.forEach(enemy => {
                     if (enemy.dead) return;
-                    const directionToEnemy = enemy.position.clone().sub(playerPos).normalize();
-                    const forward = new THREE.Vector3();
-                    controls.getObject().getWorldDirection(forward);
-                    const angle = Math.acos(directionToEnemy.dot(forward));
-                    if (angle < minAngle) {
-                        minAngle = angle;
+                    const enemyPos = enemy.position.clone();
+                    enemyPos.y += enemy.type === 'heavy' ? 1.25 : 1;
+                    const vector = enemyPos.clone().project(camera);
+                    const dist = Math.sqrt(vector.x * vector.x + vector.y * vector.y);
+                    if (dist * camera.fov <= modSettings.aimbotFov / 2 && dist < minDist) {
+                        minDist = dist;
                         closestEnemy = enemy;
                     }
                 });
@@ -724,13 +843,12 @@
             if (e.key === '5') currentWeapon = 4;
             if (e.key === '6') currentWeapon = 5;
             if (e.key === 'r' || e.key === 'R') {
-                const reloadTime = modSettings.instantReload ? 0 : 1000;
                 setTimeout(() => {
                     weapons[currentWeapon].ammo = weapons[currentWeapon].maxAmmo;
                     console.log('Reloaded!');
                     document.getElementById('ammo').textContent = weapons[currentWeapon].ammo;
                     document.getElementById('ammoFill').style.width = `${(weapons[currentWeapon].ammo / weapons[currentWeapon].maxAmmo) * 100}%`;
-                }, reloadTime);
+                }, 1000);
             }
             document.getElementById('weapon').textContent = weapons[currentWeapon].name;
             document.getElementById('ammo').textContent = weapons[currentWeapon].ammo;
@@ -743,7 +861,8 @@
         document.addEventListener('mousedown', (e) => {
             if (e.button !== 0 || !controls.isLocked) return;
             const now = Date.now();
-            if (now - lastShot < weapons[currentWeapon].fireRate || (!modSettings.infiniteAmmo && weapons[currentWeapon].ammo <= 0)) return;
+            const fireRate = modSettings.rapidFire ? weapons[currentWeapon].fireRate * 0.5 : weapons[currentWeapon].fireRate;
+            if (now - lastShot < fireRate || (!modSettings.infiniteAmmo && weapons[currentWeapon].ammo <= 0)) return;
             lastShot = now;
             if (!modSettings.infiniteAmmo) {
                 weapons[currentWeapon].ammo--;
@@ -752,9 +871,7 @@
             }
             document.getElementById('crosshair').classList.add('shooting');
             muzzleFlash.visible = true;
-            if (!modSettings.noRecoil) {
-                gunGeometry.position.y -= 0.05; // Recoil
-            }
+            gunGeometry.position.y -= 0.05;
             setTimeout(() => {
                 document.getElementById('crosshair').classList.remove('shooting');
                 muzzleFlash.visible = false;
@@ -770,6 +887,7 @@
         const flameGeometry = new THREE.SphereGeometry(0.2, 8, 8);
         const flameMaterial = new THREE.MeshBasicMaterial({ color: 0xff4500 });
         function shootBullet() {
+            const damage = modSettings.oneShot ? 9999 : weapons[currentWeapon].baseDamage;
             if (weapons[currentWeapon].name === 'Shotgun') {
                 for (let i = 0; i < weapons[currentWeapon].pellets; i++) {
                     const bullet = new THREE.Mesh(bulletGeometry, bulletMaterial);
@@ -784,6 +902,7 @@
                     );
                     bullet.velocity = direction.clone().add(spread).normalize().multiplyScalar(1.5);
                     bullet.rotation.copy(camera.rotation);
+                    bullet.damage = damage;
                     scene.add(bullet);
                     bullets.push(bullet);
                 }
@@ -795,6 +914,7 @@
                 controls.getObject().getWorldDirection(direction);
                 bullet.velocity = direction.clone().multiplyScalar(0.8);
                 bullet.isRocket = true;
+                bullet.damage = damage;
                 scene.add(bullet);
                 bullets.push(bullet);
             } else if (weapons[currentWeapon].name === 'Flamethrower') {
@@ -810,6 +930,7 @@
                 );
                 bullet.velocity = direction.clone().add(spread).normalize().multiplyScalar(0.5);
                 bullet.isFlame = true;
+                bullet.damage = damage;
                 scene.add(bullet);
                 bullets.push(bullet);
             } else {
@@ -820,6 +941,7 @@
                 controls.getObject().getWorldDirection(direction);
                 bullet.velocity = direction.clone().multiplyScalar(weapons[currentWeapon].name === 'Sniper' ? 2 : 1.5);
                 bullet.rotation.copy(camera.rotation);
+                bullet.damage = damage;
                 scene.add(bullet);
                 bullets.push(bullet);
             }
@@ -880,7 +1002,7 @@
                     enemies.forEach((enemy, i) => {
                         if (enemy.dead) return;
                         if (bullet.position.distanceTo(enemy.position) < weapons[currentWeapon].explosionRadius) {
-                            enemy.health -= weapons[currentWeapon].damage;
+                            enemy.health -= bullet.damage;
                             if (enemy.health <= 0 && !enemy.dead) {
                                 enemy.dead = true;
                                 scene.remove(enemy);
@@ -915,7 +1037,7 @@
                     if (enemy.dead) return;
                     const dist = bullet.position.distanceTo(enemy.position);
                     if ((bullet.isFlame && dist < 1.5) || (!bullet.isFlame && dist < 1)) {
-                        enemy.health -= weapons[currentWeapon].damage;
+                        enemy.health -= bullet.damage;
                         if (!bullet.isFlame) bulletsToRemove.push(index);
                         if (enemy.health <= 0 && !enemy.dead) {
                             enemy.dead = true;
@@ -1010,7 +1132,7 @@
         function updateEnemyShooting() {
             const playerPos = controls.getObject().position;
             enemies.forEach(enemy => {
-                if (enemy.dead) return;
+                if (enemy.dead || modSettings.invisible) return;
                 const distToPlayer = enemy.position.distanceTo(playerPos);
                 if ((enemy.type === 'shooter' && distToPlayer < 20 && Date.now() - enemy.lastShot > 1000) ||
                     (enemy.type === 'heavy' && distToPlayer < 30 && Date.now() - enemy.lastShot > 2000)) {
@@ -1063,6 +1185,7 @@
         // Movement and collision
         const velocity = new THREE.Vector3();
         const baseSpeed = 0.2;
+        let isJumping = false;
         const clock = new THREE.Clock();
         function updatePlayer() {
             const delta = clock.getDelta();
@@ -1070,9 +1193,20 @@
             velocity.z *= 0.8;
             let moveSpeed = (keys['ShiftLeft'] ? baseSpeed * 1.5 : baseSpeed) * modSettings.speedHack;
             playerHeight = keys['ControlLeft'] ? 1.0 : 1.6;
-            camera.position.y += (playerHeight - camera.position.y) * 0.1;
-            if (keys['KeyW']) velocity.z -= moveSpeed; // Move forward
-            if (keys['KeyS']) velocity.z += moveSpeed; // Move backward
+            if (keys['Space'] && !isJumping) {
+                velocity.y = modSettings.superJump ? 0.5 : 0.3;
+                isJumping = true;
+            }
+            if (camera.position.y > playerHeight) {
+                velocity.y -= 0.05;
+            } else {
+                velocity.y = 0;
+                camera.position.y = playerHeight;
+                isJumping = false;
+            }
+            camera.position.y += velocity.y;
+            if (keys['KeyW']) velocity.z += moveSpeed;
+            if (keys['KeyS']) velocity.z -= moveSpeed;
             if (keys['KeyA']) velocity.x -= moveSpeed;
             if (keys['KeyD']) velocity.x += moveSpeed;
             controls.moveRight(velocity.x * delta * 50);
@@ -1100,26 +1234,43 @@
                     }
                     pickupsToRemove.push(index);
                     console.log(pickup.isHealth ? 'Health pickup!' : 'Ammo pickup!');
+                    if (modSettings.infinitePickups) {
+                        const isHealth = Math.random() > 0.5;
+                        const newPickup = new THREE.Mesh(
+                            isHealth ? healthPickupGeometry : ammoPickupGeometry,
+                            isHealth ? healthPickupMaterial : ammoPickupMaterial
+                        );
+                        newPickup.position.set(
+                            (Math.random() - 0.5) * 360,
+                            0.5,
+                            (Math.random() - 0.5) * 360
+                        );
+                        newPickup.isHealth = isHealth;
+                        scene.add(newPickup);
+                        pickups.push(newPickup);
+                    }
                 }
             });
             pickupsToRemove.reverse().forEach(index => {
                 scene.remove(pickups[index]);
                 pickups.splice(index, 1);
-                setTimeout(() => {
-                    const isHealth = Math.random() > 0.5;
-                    const pickup = new THREE.Mesh(
-                        isHealth ? healthPickupGeometry : ammoPickupGeometry,
-                        isHealth ? healthPickupMaterial : ammoPickupMaterial
-                    );
-                    pickup.position.set(
-                        (Math.random() - 0.5) * 360,
-                        0.5,
-                        (Math.random() - 0.5) * 360
-                    );
-                    pickup.isHealth = isHealth;
-                    scene.add(pickup);
-                    pickups.push(pickup);
-                }, 10000);
+                if (!modSettings.infinitePickups) {
+                    setTimeout(() => {
+                        const isHealth = Math.random() > 0.5;
+                        const pickup = new THREE.Mesh(
+                            isHealth ? healthPickupGeometry : ammoPickupGeometry,
+                            isHealth ? healthPickupMaterial : ammoPickupMaterial
+                        );
+                        pickup.position.set(
+                            (Math.random() - 0.5) * 360,
+                            0.5,
+                            (Math.random() - 0.5) * 360
+                        );
+                        pickup.isHealth = isHealth;
+                        scene.add(pickup);
+                        pickups.push(pickup);
+                    }, 10000);
+                }
             });
             if (playerPos.x > 200) playerPos.x = 200;
             if (playerPos.x < -200) playerPos.x = -200;
@@ -1131,9 +1282,9 @@
         function updateAI() {
             const playerPos = controls.getObject().position;
             enemies.forEach(enemy => {
-                if (enemy.dead || modSettings.enemyFreeze) return;
+                if (enemy.dead) return;
                 const distToPlayer = enemy.position.distanceTo(playerPos);
-                if (enemy.type === 'melee' && distToPlayer < 2) {
+                if (enemy.type === 'melee' && distToPlayer < 2 && !modSettings.invisible) {
                     if (!modSettings.godMode) {
                         if (armor > 0) {
                             armor -= 0.2;
@@ -1162,7 +1313,7 @@
                             spawnWave();
                         }
                     }
-                } else if (distToPlayer < 30) {
+                } else if (distToPlayer < 30 && !modSettings.invisible) {
                     let nearestObstacle = null;
                     let minDist = Infinity;
                     obstacles.forEach(obstacle => {
@@ -1210,21 +1361,19 @@
             updateAI();
             updateBullets();
             updateEnemyShooting();
+            updateMinimap();
             updateAimbot();
             updateESP();
             updateTracers();
-            updateMinimap();
             renderer.render(scene, camera);
         }
         animate();
 
-        // Handle window resize
+        // Window resize handler
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
-            minimapCanvas.width = 100;
-            minimapCanvas.height = 100;
         });
     </script>
 </body>
