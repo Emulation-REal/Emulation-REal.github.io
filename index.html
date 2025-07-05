@@ -102,9 +102,9 @@
                     <label>Skeleton ESP</label>
                     <input type="checkbox" id="skeletonEspToggle">
                 </div>
-                <div class="mod-option" title="Apply glowing outline to enemies">
-                    <label>Glow ESP</label>
-                    <input type="checkbox" id="glowEspToggle">
+                <div class="mod-option" title="Surround enemies with swirling particle auras (red: Melee, blue: Shooter, purple: Heavy)">
+                    <label>Particle Aura ESP</label>
+                    <input type="checkbox" id="particleAuraEspToggle">
                 </div>
                 <div class="mod-option" title="Draw glowing lines to enemies from crosshair (red for Melee, blue for Shooter, purple for Heavy)">
                     <label>Enemy Tracers</label>
@@ -134,6 +134,10 @@
                 <div class="mod-option" title="Adjust auto-aim field of view (10°-180°)">
                     <label>Auto Aim FOV: <span id="aimbotFovValue">90</span>°</label>
                     <input type="range" id="aimbotFov" min="10" max="180" value="90">
+                </div>
+                <div class="mod-option" title="Predict enemy movement for aimbot targeting">
+                    <label>Aimbot Prediction</label>
+                    <input type="checkbox" id="aimbotPredictionToggle">
                 </div>
             </div>
         </div>
@@ -235,10 +239,11 @@
         camera.add(gunGeometry);
 
         let aimbotFovMesh = null;
-        const aimbotFovMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.2, side: THREE.DoubleSide });
+        const aimbotFovMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.2, side: THREE.DoubleSide, depthTest: false });
         function updateAimbotFovMesh() {
             if (aimbotFovMesh) scene.remove(aimbotFovMesh);
-            if (modSettings.aimbot || modSettings.aimbotFovVisible) {
+            aimbotFovMesh = null;
+            if (modSettings.aimbotFovVisible) {
                 const fovRad = modSettings.aimbotFov * Math.PI / 180;
                 aimbotFovMesh = new THREE.Mesh(new THREE.ConeGeometry(Math.tan(fovRad / 2) * 10, 10, 32), aimbotFovMaterial);
                 aimbotFovMesh.rotation.x = Math.PI / 2;
@@ -257,7 +262,18 @@
             { name: 'Flamethrower', ammo: 100, maxAmmo: 100, baseDamage: 5, fireRate: 100, range: 10, icon: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M20 6h-4V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H4a1 1 0 0 0-1 1v5h18V7a1 1 0 0 0-1-1zM10 4h4v2h-4V4zM3 13v6a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6H3zM10 15c0 2 4 4 4 4"/></svg>' }
         ];
 
-        let modSettings = { esp: false, skeletonEsp: false, glowEsp: false, aimbot: false, aimbotFov: 90, aimbotFovVisible: false, tracers: false, breadcrumbs: false, breadcrumbsDuration: 3000 };
+        let modSettings = { 
+            esp: false, 
+            skeletonEsp: false, 
+            particleAuraEsp: false, 
+            aimbot: false, 
+            aimbotFov: 90, 
+            aimbotFovVisible: false, 
+            aimbotPrediction: false, 
+            tracers: false, 
+            breadcrumbs: false, 
+            breadcrumbsDuration: 3000 
+        };
 
         const tracers = [];
         const tracerMaterialMelee = new THREE.LineBasicMaterial({ color: 0xff0000, linewidth: 3, transparent: true, opacity: 0.8 });
@@ -270,16 +286,11 @@
         const breadcrumbMaterialShooter = new THREE.MeshBasicMaterial({ color: 0x0000ff, transparent: true, opacity: 0.6, depthTest: false });
         const breadcrumbMaterialHeavy = new THREE.MeshBasicMaterial({ color: 0x800080, transparent: true, opacity: 0.6, depthTest: false });
 
-        const glowMaterialMelee = new THREE.ShaderMaterial({
-            uniforms: { glowColor: { value: new THREE.Color(0xff0000) }, intensity: { value: 0.5 } },
-            vertexShader: `varying vec3 vNormal; void main() { vNormal = normal; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
-            fragmentShader: `uniform vec3 glowColor; uniform float intensity; varying vec3 vNormal; void main() { float glow = pow(1.0 - dot(normalize(vNormal), vec3(0.0, 0.0, 1.0)), 2.0) * intensity; gl_FragColor = vec4(glowColor * glow, glow); }`,
-            transparent: true, side: THREE.DoubleSide
-        });
-        const glowMaterialShooter = glowMaterialMelee.clone();
-        glowMaterialShooter.uniforms.glowColor.value.set(0x0000ff);
-        const glowMaterialHeavy = glowMaterialMelee.clone();
-        glowMaterialHeavy.uniforms.glowColor.value.set(0x800080);
+        const particleAuraGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+        const particleAuraMaterialMelee = new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.7, depthTest: false });
+        const particleAuraMaterialShooter = new THREE.MeshBasicMaterial({ color: 0x0000ff, transparent: true, opacity: 0.7, depthTest: false });
+        const particleAuraMaterialHeavy = new THREE.MeshBasicMaterial({ color: 0x800080, transparent: true, opacity: 0.7, depthTest: false });
+        const particleAuras = [];
 
         const espCanvas = document.getElementById('espCanvas');
         const espCtx = espCanvas.getContext('2d');
@@ -329,7 +340,7 @@
 
         document.getElementById('espToggle').addEventListener('change', (e) => modSettings.esp = e.target.checked);
         document.getElementById('skeletonEspToggle').addEventListener('change', (e) => modSettings.skeletonEsp = e.target.checked);
-        document.getElementById('glowEspToggle').addEventListener('change', (e) => { modSettings.glowEsp = e.target.checked; updateGlowESP(); });
+        document.getElementById('particleAuraEspToggle').addEventListener('change', (e) => { modSettings.particleAuraEsp = e.target.checked; updateParticleAuraESP(); });
         document.getElementById('tracersToggle').addEventListener('change', (e) => { modSettings.tracers = e.target.checked; updateTracers(); });
         document.getElementById('breadcrumbsToggle').addEventListener('change', (e) => modSettings.breadcrumbs = e.target.checked);
         document.getElementById('breadcrumbsDuration').addEventListener('input', (e) => {
@@ -351,15 +362,16 @@
             modSettings.aimbotFovVisible = e.target.checked;
             updateAimbotFovMesh();
         });
+        document.getElementById('aimbotPredictionToggle').addEventListener('change', (e) => modSettings.aimbotPrediction = e.target.checked);
         document.getElementById('closeMenu').addEventListener('click', () => {
             modMenu.classList.remove('open');
             controls.lock();
         });
         document.getElementById('resetMods').addEventListener('click', () => {
-            modSettings = { esp: false, skeletonEsp: false, glowEsp: false, aimbot: false, aimbotFov: 90, aimbotFovVisible: false, tracers: false, breadcrumbs: false, breadcrumbsDuration: 3000 };
+            modSettings = { esp: false, skeletonEsp: false, particleAuraEsp: false, aimbot: false, aimbotFov: 90, aimbotFovVisible: false, aimbotPrediction: false, tracers: false, breadcrumbs: false, breadcrumbsDuration: 3000 };
             document.getElementById('espToggle').checked = false;
             document.getElementById('skeletonEspToggle').checked = false;
-            document.getElementById('glowEspToggle').checked = false;
+            document.getElementById('particleAuraEspToggle').checked = false;
             document.getElementById('tracersToggle').checked = false;
             document.getElementById('breadcrumbsToggle').checked = false;
             document.getElementById('breadcrumbsDuration').value = 3;
@@ -368,8 +380,15 @@
             document.getElementById('aimbotFov').value = 90;
             document.getElementById('aimbotFovValue').textContent = '90';
             document.getElementById('aimbotFovToggle').checked = false;
-            enemies.forEach(enemy => { if (!enemy.dead) enemy.material = enemy.originalMaterial; });
-            updateGlowESP();
+            document.getElementById('aimbotPredictionToggle').checked = false;
+            enemies.forEach(enemy => {
+                if (!enemy.dead) enemy.material = enemy.originalMaterial;
+                if (enemy.particles) {
+                    enemy.particles.forEach(p => scene.remove(p));
+                    enemy.particles = [];
+                }
+            });
+            updateParticleAuraESP();
             updateTracers();
             updateAimbotFovMesh();
         });
@@ -392,8 +411,9 @@
         ];
         function spawnWave() {
             enemies.length = 0;
-            scene.children = scene.children.filter(child => !child.isEnemy && !child.isTracer && !child.isBreadcrumb);
+            scene.children = scene.children.filter(child => !child.isEnemy && !child.isTracer && !child.isBreadcrumb && !child.isParticle);
             breadcrumbs.length = 0;
+            particleAuras.length = 0;
             enemiesLeft = wave * 5;
             document.getElementById('enemiesLeft').textContent = enemiesLeft;
             for (let i = 0; i < enemiesLeft; i++) {
@@ -413,10 +433,12 @@
                 enemy.castShadow = true;
                 enemy.lastBreadcrumb = 0;
                 enemy.originalMaterial = enemy.material;
+                enemy.lastPosition = enemy.position.clone();
+                enemy.particles = [];
                 scene.add(enemy);
                 enemies.push(enemy);
             }
-            updateGlowESP();
+            updateParticleAuraESP();
             updateTracers();
         }
         spawnWave();
@@ -426,7 +448,6 @@
             const vector = new THREE.Vector3();
             enemies.forEach(enemy => {
                 if (!enemy.dead) {
-                    // Calculate bounding box for enemy
                     const height = enemy.type === 'heavy' ? 2.5 : 2;
                     const width = enemy.type === 'heavy' ? 1.5 : 1;
                     const topPos = enemy.position.clone().setY(enemy.position.y + height / 2);
@@ -434,7 +455,6 @@
                     const leftPos = enemy.position.clone().setX(enemy.position.x - width / 2);
                     const rightPos = enemy.position.clone().setX(enemy.position.x + width / 2);
                     
-                    // Project positions to screen space
                     topPos.project(camera);
                     bottomPos.project(camera);
                     leftPos.project(camera);
@@ -454,17 +474,14 @@
                         if (modSettings.skeletonEsp) {
                             espCtx.strokeStyle = enemy.type === 'melee' ? 'red' : enemy.type === 'shooter' ? 'blue' : 'purple';
                             espCtx.lineWidth = 2;
-                            // Torso
                             espCtx.beginPath();
                             espCtx.moveTo((x1 + x2) / 2, y1);
                             espCtx.lineTo((x1 + x2) / 2, y2);
                             espCtx.stroke();
-                            // Arms
                             espCtx.beginPath();
                             espCtx.moveTo(x1, y1 + (y2 - y1) * 0.3);
                             espCtx.lineTo(x2, y1 + (y2 - y1) * 0.3);
                             espCtx.stroke();
-                            // Legs
                             espCtx.beginPath();
                             espCtx.moveTo(x1, y2);
                             espCtx.lineTo((x1 + x2) / 2, y2 - (y2 - y1) * 0.3);
@@ -479,11 +496,28 @@
             });
         }
 
-        function updateGlowESP() {
+        function updateParticleAuraESP() {
+            particleAuras.forEach(p => scene.remove(p));
+            particleAuras.length = 0;
             enemies.forEach(enemy => {
-                if (!enemy.dead) enemy.material = modSettings.glowEsp
-                    ? (enemy.type === 'melee' ? glowMaterialMelee : enemy.type === 'shooter' ? glowMaterialShooter : glowMaterialHeavy)
-                    : enemy.originalMaterial;
+                if (enemy.particles) {
+                    enemy.particles.forEach(p => scene.remove(p));
+                    enemy.particles = [];
+                }
+                if (!enemy.dead && modSettings.particleAuraEsp) {
+                    enemy.particles = [];
+                    for (let i = 0; i < 10; i++) {
+                        const particle = new THREE.Mesh(particleAuraGeometry, 
+                            enemy.type === 'melee' ? particleAuraMaterialMelee : 
+                            enemy.type === 'shooter' ? particleAuraMaterialShooter : particleAuraMaterialHeavy);
+                        particle.isParticle = true;
+                        particle.angle = Math.random() * Math.PI * 2;
+                        particle.distance = 1.5 + Math.random() * 0.5;
+                        scene.add(particle);
+                        enemy.particles.push(particle);
+                        particleAuras.push(particle);
+                    }
+                }
             });
         }
 
@@ -546,7 +580,7 @@
             }
         }
 
-        function updateAimbot() {
+        function updateAimbot(delta) {
             if (modSettings.aimbot && controls.isLocked && keys['MouseButton2']) {
                 const playerPos = controls.getObject().position;
                 let closestEnemy = null, minAngle = Infinity;
@@ -555,22 +589,24 @@
                 controls.getObject().getWorldDirection(cameraDir);
                 enemies.forEach(enemy => {
                     if (!enemy.dead) {
-                        const enemyPos = enemy.position.clone();
-                        enemyPos.y += enemy.type === 'heavy' ? 0.75 : 0.5;
-                        const direction = enemyPos.clone().sub(playerPos).normalize();
+                        let targetPos = enemy.position.clone();
+                        targetPos.y += enemy.type === 'heavy' ? 0.75 : 0.5;
+                        if (modSettings.aimbotPrediction) {
+                            const velocity = enemy.position.clone().sub(enemy.lastPosition).multiplyScalar(1 / delta);
+                            targetPos.add(velocity.multiplyScalar(0.5));
+                        }
+                        const direction = targetPos.clone().sub(playerPos).normalize();
                         const angle = cameraDir.angleTo(direction);
                         if (angle <= fovRad / 2 && angle < minAngle) {
                             minAngle = angle;
                             closestEnemy = enemy;
+                            closestEnemy.targetPos = targetPos;
                         }
                     }
                 });
                 if (closestEnemy) {
-                    const targetPos = closestEnemy.position.clone();
-                    targetPos.y += closestEnemy.type === 'heavy' ? 0.75 : 0.5;
-                    const direction = targetPos.clone().sub(playerPos).normalize();
+                    const direction = closestEnemy.targetPos.clone().sub(playerPos).normalize();
                     const targetQuat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, -1), direction);
-                    const currentQuat = controls.getObject().quaternion.clone();
                     controls.getObject().quaternion.slerp(targetQuat, 0.2);
                 }
             }
@@ -707,9 +743,11 @@
             enemy.castShadow = true;
             enemy.lastBreadcrumb = 0;
             enemy.originalMaterial = enemy.material;
+            enemy.lastPosition = enemy.position.clone();
+            enemy.particles = [];
             scene.add(enemy);
             enemies[index] = enemy;
-            updateGlowESP();
+            updateParticleAuraESP();
             updateTracers();
         }
 
@@ -862,6 +900,24 @@
             minimapCtx.fillRect(50 - 2, 50 - 2, 4, 4);
         }
 
+        function updateParticleAuras(delta) {
+            if (modSettings.particleAuraEsp) {
+                enemies.forEach(enemy => {
+                    if (!enemy.dead && enemy.particles) {
+                        enemy.particles.forEach(particle => {
+                            particle.angle += delta * 2;
+                            const radius = particle.distance;
+                            particle.position.copy(enemy.position);
+                            particle.position.x += Math.cos(particle.angle) * radius;
+                            particle.position.z += Math.sin(particle.angle) * radius;
+                            particle.position.y += enemy.type === 'heavy' ? 0.75 : 0.5;
+                            particle.material.opacity = 0.7 * (1 - Math.abs(Math.sin(particle.angle * 2)) * 0.5);
+                        });
+                    }
+                });
+            }
+        }
+
         const velocity = new THREE.Vector3();
         const baseSpeed = 0.2;
         let isJumping = false;
@@ -930,6 +986,7 @@
             const playerPos = controls.getObject().position;
             enemies.forEach(enemy => {
                 if (enemy.dead) return;
+                enemy.lastPosition.copy(enemy.position);
                 const distToPlayer = enemy.position.distanceTo(playerPos);
                 if (enemy.type === 'melee' && distToPlayer < 2) {
                     if (armor > 0) {
@@ -984,6 +1041,7 @@
 
         function animate() {
             requestAnimationFrame(animate);
+            const delta = clock.getDelta();
             updatePlayer();
             updateAI();
             updateBullets();
@@ -992,7 +1050,8 @@
             updateESP();
             updateTracers();
             updateBreadcrumbs();
-            updateAimbot();
+            updateParticleAuras(delta);
+            updateAimbot(delta);
             renderer.render(scene, camera);
             if (enemiesLeft <= 0) {
                 wave++;
