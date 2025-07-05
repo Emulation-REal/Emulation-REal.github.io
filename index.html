@@ -266,9 +266,9 @@
 
         const breadcrumbs = [];
         const breadcrumbGeometry = new THREE.SphereGeometry(0.2, 8, 8);
-        const breadcrumbMaterialMelee = new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.6 });
-        const breadcrumbMaterialShooter = new THREE.MeshBasicMaterial({ color: 0x0000ff, transparent: true, opacity: 0.6 });
-        const breadcrumbMaterialHeavy = new THREE.MeshBasicMaterial({ color: 0x800080, transparent: true, opacity: 0.6 });
+        const breadcrumbMaterialMelee = new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.6, depthTest: false });
+        const breadcrumbMaterialShooter = new THREE.MeshBasicMaterial({ color: 0x0000ff, transparent: true, opacity: 0.6, depthTest: false });
+        const breadcrumbMaterialHeavy = new THREE.MeshBasicMaterial({ color: 0x800080, transparent: true, opacity: 0.6, depthTest: false });
 
         const glowMaterialMelee = new THREE.ShaderMaterial({
             uniforms: { glowColor: { value: new THREE.Color(0xff0000) }, intensity: { value: 0.5 } },
@@ -426,28 +426,52 @@
             const vector = new THREE.Vector3();
             enemies.forEach(enemy => {
                 if (!enemy.dead) {
-                    vector.setFromMatrixPosition(enemy.matrixWorld);
-                    vector.project(camera);
-                    const x = (vector.x * 0.5 + 0.5) * espCanvas.width;
-                    const y = (-vector.y * 0.5 + 0.5) * espCanvas.height;
-                    if (vector.z < 1) {
-                        const size = 2 * 1000 / vector.z;
-                        const height = size * (enemy.type === 'heavy' ? 2.5 : 2);
+                    // Calculate bounding box for enemy
+                    const height = enemy.type === 'heavy' ? 2.5 : 2;
+                    const width = enemy.type === 'heavy' ? 1.5 : 1;
+                    const topPos = enemy.position.clone().setY(enemy.position.y + height / 2);
+                    const bottomPos = enemy.position.clone().setY(enemy.position.y - height / 2);
+                    const leftPos = enemy.position.clone().setX(enemy.position.x - width / 2);
+                    const rightPos = enemy.position.clone().setX(enemy.position.x + width / 2);
+                    
+                    // Project positions to screen space
+                    topPos.project(camera);
+                    bottomPos.project(camera);
+                    leftPos.project(camera);
+                    rightPos.project(camera);
+                    
+                    const x1 = (leftPos.x * 0.5 + 0.5) * espCanvas.width;
+                    const x2 = (rightPos.x * 0.5 + 0.5) * espCanvas.width;
+                    const y1 = (-topPos.y * 0.5 + 0.5) * espCanvas.height;
+                    const y2 = (-bottomPos.y * 0.5 + 0.5) * espCanvas.height;
+                    
+                    if (topPos.z < 1 && bottomPos.z < 1) {
                         if (modSettings.esp) {
                             espCtx.strokeStyle = enemy.type === 'heavy' ? 'red' : 'green';
                             espCtx.lineWidth = 2;
-                            espCtx.strokeRect(x - size / 2, y - height / 2, size, height);
+                            espCtx.strokeRect(x1, y1, x2 - x1, y2 - y1);
                         }
                         if (modSettings.skeletonEsp) {
                             espCtx.strokeStyle = enemy.type === 'melee' ? 'red' : enemy.type === 'shooter' ? 'blue' : 'purple';
                             espCtx.lineWidth = 2;
+                            // Torso
                             espCtx.beginPath();
-                            espCtx.moveTo(x, y - height / 2);
-                            espCtx.lineTo(x, y + height / 2);
+                            espCtx.moveTo((x1 + x2) / 2, y1);
+                            espCtx.lineTo((x1 + x2) / 2, y2);
+                            espCtx.stroke();
+                            // Arms
+                            espCtx.beginPath();
+                            espCtx.moveTo(x1, y1 + (y2 - y1) * 0.3);
+                            espCtx.lineTo(x2, y1 + (y2 - y1) * 0.3);
+                            espCtx.stroke();
+                            // Legs
+                            espCtx.beginPath();
+                            espCtx.moveTo(x1, y2);
+                            espCtx.lineTo((x1 + x2) / 2, y2 - (y2 - y1) * 0.3);
                             espCtx.stroke();
                             espCtx.beginPath();
-                            espCtx.moveTo(x - size / 4, y - height / 4);
-                            espCtx.lineTo(x + size / 4, y - height / 4);
+                            espCtx.moveTo(x2, y2);
+                            espCtx.lineTo((x1 + x2) / 2, y2 - (y2 - y1) * 0.3);
                             espCtx.stroke();
                         }
                     }
@@ -491,22 +515,33 @@
                 enemies.forEach(enemy => {
                     if (!enemy.dead && Date.now() - enemy.lastBreadcrumb > 500) {
                         enemy.lastBreadcrumb = Date.now();
-                        const breadcrumb = new THREE.Mesh(breadcrumbGeometry, enemy.type === 'melee' ? breadcrumbMaterialMelee : enemy.type === 'shooter' ? breadcrumbMaterialShooter : breadcrumbMaterialHeavy);
+                        const breadcrumb = new THREE.Mesh(breadcrumbGeometry, 
+                            enemy.type === 'melee' ? breadcrumbMaterialMelee : 
+                            enemy.type === 'shooter' ? breadcrumbMaterialShooter : breadcrumbMaterialHeavy);
                         breadcrumb.position.copy(enemy.position);
                         breadcrumb.isBreadcrumb = true;
-                        breadcrumb.lifetime = modSettings.breadcrumbsDuration;
                         breadcrumb.created = Date.now();
                         scene.add(breadcrumb);
                         breadcrumbs.push(breadcrumb);
                     }
                 });
                 const now = Date.now();
-                breadcrumbs.forEach(b => b.material.opacity = 0.6 * (1 - (now - b.created) / b.lifetime));
-                const toRemove = breadcrumbs.filter(b => now - b.created > b.lifetime);
-                toRemove.forEach(b => { scene.remove(b); b.geometry.dispose(); b.material.dispose(); });
-                breadcrumbs.length = breadcrumbs.filter(b => now - b.created <= b.lifetime).length;
+                const toRemove = breadcrumbs.filter(b => now - b.created > modSettings.breadcrumbsDuration);
+                toRemove.forEach(b => {
+                    scene.remove(b);
+                    b.geometry.dispose();
+                    b.material.dispose();
+                });
+                breadcrumbs.splice(0, breadcrumbs.length, ...breadcrumbs.filter(b => now - b.created <= modSettings.breadcrumbsDuration));
+                breadcrumbs.forEach(b => {
+                    b.material.opacity = 0.6 * (1 - (now - b.created) / modSettings.breadcrumbsDuration);
+                });
             } else {
-                breadcrumbs.forEach(b => { scene.remove(b); b.geometry.dispose(); b.material.dispose(); });
+                breadcrumbs.forEach(b => {
+                    scene.remove(b);
+                    b.geometry.dispose();
+                    b.material.dispose();
+                });
                 breadcrumbs.length = 0;
             }
         }
@@ -514,7 +549,7 @@
         function updateAimbot() {
             if (modSettings.aimbot && controls.isLocked && keys['MouseButton2']) {
                 const playerPos = controls.getObject().position;
-                let closestEnemy = null, minDist = Infinity;
+                let closestEnemy = null, minAngle = Infinity;
                 const fovRad = modSettings.aimbotFov * Math.PI / 180;
                 const cameraDir = new THREE.Vector3();
                 controls.getObject().getWorldDirection(cameraDir);
@@ -524,9 +559,8 @@
                         enemyPos.y += enemy.type === 'heavy' ? 0.75 : 0.5;
                         const direction = enemyPos.clone().sub(playerPos).normalize();
                         const angle = cameraDir.angleTo(direction);
-                        const dist = playerPos.distanceTo(enemyPos);
-                        if (angle <= fovRad / 2 && dist < minDist) {
-                            minDist = dist;
+                        if (angle <= fovRad / 2 && angle < minAngle) {
+                            minAngle = angle;
                             closestEnemy = enemy;
                         }
                     }
@@ -534,14 +568,10 @@
                 if (closestEnemy) {
                     const targetPos = closestEnemy.position.clone();
                     targetPos.y += closestEnemy.type === 'heavy' ? 0.75 : 0.5;
-                    const direction = targetPos.sub(playerPos).normalize();
-                    const targetYaw = Math.atan2(direction.x, direction.z);
-                    const targetPitch = Math.asin(direction.y);
-                    const yawDiff = targetYaw - controls.getObject().rotation.y;
-                    const pitchDiff = targetPitch - controls.getObject().rotation.x;
-                    controls.getObject().rotation.y += yawDiff * 0.2;
-                    controls.getObject().rotation.x += pitchDiff * 0.2;
-                    controls.getObject().rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, controls.getObject().rotation.x));
+                    const direction = targetPos.clone().sub(playerPos).normalize();
+                    const targetQuat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, -1), direction);
+                    const currentQuat = controls.getObject().quaternion.clone();
+                    controls.getObject().quaternion.slerp(targetQuat, 0.2);
                 }
             }
         }
