@@ -3,218 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ultimate 3D Shooter Game</title>
+    <title>3D Shooter Game</title>
     <style>
         body { margin: 0; overflow: hidden; }
         canvas { display: block; }
         #hud {
             position: absolute;
-            top: 10px;
-            left: 10px;
-            color: #ffffff;
-            font-family: 'Roboto', sans-serif;
-            font-size: 12px;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 8px;
-            border-radius: 6px;
-            box-shadow: 0 0 8px rgba(0, 255, 0, 0.7);
+            top: 10px; left: 10px;
+            color: #fff; font-family: 'Roboto', sans-serif; font-size: 12px;
+            background: rgba(0, 0, 0, 0.8); padding: 8px; border-radius: 6px;
         }
         #healthBar, #ammoBar, #armorBar {
-            width: 120px;
-            height: 12px;
-            background: #333;
-            border: 1px solid #0f0;
-            border-radius: 3px;
-            margin-top: 3px;
-        }
-        #healthFill, #ammoFill, #armorFill {
-            height: 100%;
-            border-radius: 2px;
-            transition: width 0.3s;
+            width: 120px; height: 12px; background: #333; border: 1px solid #0f0; border-radius: 3px; margin-top: 3px;
         }
         #healthFill { background: #0f0; }
         #ammoFill { background: #00f; }
         #armorFill { background: #ffa500; }
-        #weaponIcon {
-            width: 30px;
-            height: 30px;
-            margin-top: 3px;
-            background-size: contain;
-            background-repeat: no-repeat;
-        }
+        #healthFill, #ammoFill, #armorFill { height: 100%; border-radius: 2px; transition: width 0.3s; }
+        #weaponIcon { width: 30px; height: 30px; margin-top: 3px; background-size: contain; background-repeat: no-repeat; }
         #killFeed {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            color: #ffffff;
-            font-family: 'Roboto', sans-serif;
-            font-size: 12px;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 8px;
-            border-radius: 6px;
-            max-height: 120px;
-            overflow: hidden;
-            max-width: 150px;
+            position: absolute; top: 10px; right: 10px; color: #fff; font-family: 'Roboto', sans-serif; font-size: 12px;
+            background: rgba(0, 0, 0, 0.8); padding: 8px; border-radius: 6px; max-height: 120px; overflow: hidden; max-width: 150px;
         }
-        .killFeedEntry {
-            opacity: 1;
-            transition: opacity 3s;
-        }
-        .killFeedEntry.fade {
-            opacity: 0;
-        }
+        .killFeedEntry { opacity: 1; transition: opacity 3s; }
+        .killFeedEntry.fade { opacity: 0; }
         #minimap {
-            position: absolute;
-            bottom: 10px;
-            right: 10px;
-            width: 100px;
-            height: 100px;
-            background: rgba(0, 0, 0, 0.8);
-            border-radius: 6px;
-            overflow: hidden;
+            position: absolute; bottom: 10px; right: 10px; width: 100px; height: 100px;
+            background: rgba(0, 0, 0, 0.8); border-radius: 6px; overflow: hidden;
         }
-        #minimapCanvas {
-            width: 100%;
-            height: 100%;
-        }
+        #minimapCanvas { width: 100%; height: 100%; }
         #crosshair {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 16px;
-            height: 16px;
-            transform: translate(-50%, -50%);
+            position: absolute; top: 50%; left: 50%; width: 16px; height: 16px; transform: translate(-50%, -50%);
             background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><circle cx="8" cy="8" r="2" fill="white"/><line x1="8" y1="0" x2="8" y2="4" stroke="white" stroke-width="2"/><line x1="8" y1="12" x2="8" y2="16" stroke="white" stroke-width="2"/><line x1="0" y1="8" x2="4" y2="8" stroke="white" stroke-width="2"/><line x1="12" y1="8" x2="16" y2="8" stroke="white" stroke-width="2"/></svg>') no-repeat center;
             pointer-events: none;
-            transition: background 0.1s;
         }
         #crosshair.shooting {
             background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><circle cx="8" cy="8" r="2" fill="red"/><line x1="8" y1="0" x2="8" y2="4" stroke="red" stroke-width="2"/><line x1="8" y1="12" x2="8" y2="16" stroke="red" stroke-width="2"/><line x1="0" y1="8" x2="4" y2="8" stroke="red" stroke-width="2"/><line x1="12" y1="8" x2="16" y2="8" stroke="red" stroke-width="2"/></svg>') no-repeat center;
         }
         #modMenu {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 350px;
-            background: rgba(10, 10, 10, 0.95);
-            border: 2px solid #00ff00;
-            border-radius: 12px;
-            padding: 20px;
-            color: #ffffff;
-            font-family: 'Roboto', sans-serif;
-            font-size: 14px;
-            box-shadow: 0 0 20px rgba(0, 255, 0, 0.7);
-            display: none;
-            z-index: 1000;
-            cursor: move;
-            user-select: none;
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 300px;
+            background: rgba(10, 10, 10, 0.95); border: 2px solid #0f0; border-radius: 12px; padding: 15px;
+            color: #fff; font-family: 'Roboto', sans-serif; font-size: 14px; display: none; z-index: 1000; cursor: move;
         }
-        #modMenu.open {
-            display: block;
-        }
-        #modMenu h2 {
-            margin: 0 0 15px;
-            text-align: center;
-            color: #00ff00;
-            text-shadow: 0 0 8px #00ff00;
-            font-size: 20px;
-        }
-        .mod-section {
-            margin-bottom: 15px;
-        }
-        .mod-section h3 {
-            margin: 0 0 10px;
-            color: #00ff00;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .mod-section h3::after {
-            content: '▼';
-            transition: transform 0.3s;
-        }
-        .mod-section.collapsed h3::after {
-            transform: rotate(180deg);
-        }
-        .mod-section-content {
-            display: block;
-            transition: max-height 0.3s ease;
-            max-height: 500px;
-            overflow: hidden;
-        }
-        .mod-section.collapsed .mod-section-content {
-            max-height: 0;
-        }
-        .mod-option {
-            margin: 8px 0;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            transition: transform 0.2s;
-        }
-        .mod-option:hover {
-            transform: scale(1.02);
-        }
-        .mod-option label {
-            flex: 1;
-            color: #ffffff;
-        }
+        #modMenu.open { display: block; }
+        #modMenu h2 { margin: 0 0 10px; text-align: center; color: #0f0; font-size: 18px; }
+        .mod-section { margin-bottom: 10px; }
+        .mod-section h3 { margin: 0 0 8px; color: #0f0; cursor: pointer; display: flex; justify-content: space-between; }
+        .mod-section h3::after { content: '▼'; transition: transform 0.3s; }
+        .mod-section.collapsed h3::after { transform: rotate(180deg); }
+        .mod-section-content { max-height: 500px; overflow: hidden; transition: max-height 0.3s; }
+        .mod-section.collapsed .mod-section-content { max-height: 0; }
+        .mod-option { margin: 6px 0; display: flex; align-items: center; justify-content: space-between; }
+        .mod-option label { flex: 1; }
         .mod-option input[type="checkbox"] {
-            appearance: none;
-            width: 40px;
-            height: 20px;
-            background: #333;
-            border-radius: 10px;
-            position: relative;
-            cursor: pointer;
-            outline: none;
+            width: 40px; height: 20px; background: #333; border-radius: 10px; position: relative; cursor: pointer; appearance: none;
             transition: background 0.2s;
         }
-        .mod-option input[type="checkbox"]:checked {
-            background: #00ff00;
-        }
+        .mod-option input[type="checkbox"]:checked { background: #0f0; }
         .mod-option input[type="checkbox"]::before {
-            content: '';
-            position: absolute;
-            width: 16px;
-            height: 16px;
-            background: #fff;
-            border-radius: 50%;
-            top: 2px;
-            left: 2px;
+            content: ''; position: absolute; width: 16px; height: 16px; background: #fff; border-radius: 50%; top: 2px; left: 2px;
             transition: transform 0.2s;
         }
-        .mod-option input[type="checkbox"]:checked::before {
-            transform: translateX(20px);
-        }
-        .mod-option input[type="range"] {
-            width: 100px;
-            accent-color: #00ff00;
-            cursor: pointer;
-        }
-        #closeMenu, #resetMods {
-            display: block;
-            margin: 15px auto 0;
-            background: #ff0000;
-            color: #fff;
-            padding: 8px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-            text-align: center;
-            transition: background 0.2s;
-        }
-        #closeMenu:hover, #resetMods:hover {
-            background: #cc0000;
-        }
-        #espCanvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            pointer-events: none;
-        }
+        .mod-option input[type="checkbox"]:checked::before { transform: translateX(20px); }
+        .mod-option input[type="range"] { width: 80px; accent-color: #0f0; cursor: pointer; }
+        #closeMenu, #resetMods { display: block; margin: 10px auto 0; background: #f00; color: #fff; padding: 6px 12px; border-radius: 5px; cursor: pointer; }
+        #espCanvas { position: absolute; top: 0; left: 0; pointer-events: none; }
     </style>
 </head>
 <body>
@@ -245,21 +98,29 @@
                     <label>Enemy ESP</label>
                     <input type="checkbox" id="espToggle">
                 </div>
+                <div class="mod-option" title="Show skeletal lines for enemies (red: Melee, blue: Shooter, purple: Heavy)">
+                    <label>Skeleton ESP</label>
+                    <input type="checkbox" id="skeletonEspToggle">
+                </div>
+                <div class="mod-option" title="Apply glowing outline to enemies">
+                    <label>Glow ESP</label>
+                    <input type="checkbox" id="glowEspToggle">
+                </div>
                 <div class="mod-option" title="Draw glowing lines to enemies from crosshair (red for Melee, blue for Shooter, purple for Heavy)">
                     <label>Enemy Tracers</label>
                     <input type="checkbox" id="tracersToggle">
                 </div>
-                <div class="mod-option" title="Make obstacles semi-transparent">
-                    <label>Wall Visibility</label>
-                    <input type="checkbox" id="wallhackToggle">
+                <div class="mod-option" title="Show trails behind enemies to track movement">
+                    <label>Breadcrumbs</label>
+                    <input type="checkbox" id="breadcrumbsToggle">
+                </div>
+                <div class="mod-option" title="Adjust breadcrumb trail duration (1-10 seconds)">
+                    <label>Breadcrumbs Duration: <span id="breadcrumbsDurationValue">3</span>s</label>
+                    <input type="range" id="breadcrumbsDuration" min="1" max="10" value="3">
                 </div>
                 <div class="mod-option" title="Show aimbot field of view as a visual cone">
                     <label>Show Aimbot FOV</label>
                     <input type="checkbox" id="aimbotFovToggle">
-                </div>
-                <div class="mod-option" title="Show trails behind enemies to track movement">
-                    <label>Breadcrumbs</label>
-                    <input type="checkbox" id="breadcrumbsToggle">
                 </div>
             </div>
         </div>
@@ -282,7 +143,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/controls/PointerLockControls.js"></script>
     <script>
-        // Scene setup
         const scene = new THREE.Scene();
         scene.fog = new THREE.Fog(0x87ceeb, 50, 200);
         scene.background = new THREE.Color(0x87ceeb);
@@ -290,49 +150,36 @@
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         document.body.appendChild(renderer.domElement);
 
-        // Player setup
         const controls = new THREE.PointerLockControls(camera, renderer.domElement);
         document.addEventListener('click', () => controls.lock());
         let playerHeight = 1.6;
         camera.position.y = playerHeight;
 
-        // Lighting
-        const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
-        scene.add(ambientLight);
+        scene.add(new THREE.AmbientLight(0x404040, 0.6));
         const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
         directionalLight.position.set(20, 30, 20);
         directionalLight.castShadow = true;
         directionalLight.shadow.mapSize.set(1024, 1024);
         scene.add(directionalLight);
 
-        // Ground
-        const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x228B22 });
-        const groundGeometry = new THREE.PlaneGeometry(400, 400);
-        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        const ground = new THREE.Mesh(new THREE.PlaneGeometry(400, 400), new THREE.MeshStandardMaterial({ color: 0x228B22 }));
         ground.rotation.x = -Math.PI / 2;
         ground.receiveShadow = true;
         scene.add(ground);
 
-        // Terrain (hills)
         const hills = [];
         const hillMaterial = new THREE.MeshStandardMaterial({ color: 0x556B2F });
         for (let i = 0; i < 5; i++) {
             const hill = new THREE.Mesh(new THREE.SphereGeometry(12, 16, 16), hillMaterial);
-            hill.position.set(
-                (Math.random() - 0.5) * 360,
-                6,
-                (Math.random() - 0.5) * 360
-            );
+            hill.position.set((Math.random() - 0.5) * 360, 6, (Math.random() - 0.5) * 360);
             hill.scale.y = 0.4;
             hill.receiveShadow = true;
             scene.add(hill);
             hills.push(hill);
         }
 
-        // Obstacles (crates, barrels, trees)
         const obstacles = [];
         const crateMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
         const barrelMaterial = new THREE.MeshStandardMaterial({ color: 0x808080 });
@@ -354,18 +201,13 @@
                 material = treeMaterial;
             }
             const obstacle = new THREE.Mesh(geometry, material);
-            obstacle.position.set(
-                (Math.random() - 0.5) * 360,
-                size / 2,
-                (Math.random() - 0.5) * 360
-            );
+            obstacle.position.set((Math.random() - 0.5) * 360, size / 2, (Math.random() - 0.5) * 360);
             obstacle.castShadow = true;
             obstacle.receiveShadow = true;
             scene.add(obstacle);
             obstacles.push(obstacle);
         }
 
-        // Pickups (health and ammo)
         const pickups = [];
         const healthPickupGeometry = new THREE.SphereGeometry(0.5, 16, 16);
         const healthPickupMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
@@ -373,21 +215,13 @@
         const ammoPickupMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
         for (let i = 0; i < 10; i++) {
             const isHealth = Math.random() > 0.5;
-            const pickup = new THREE.Mesh(
-                isHealth ? healthPickupGeometry : ammoPickupGeometry,
-                isHealth ? healthPickupMaterial : ammoPickupMaterial
-            );
-            pickup.position.set(
-                (Math.random() - 0.5) * 360,
-                0.5,
-                (Math.random() - 0.5) * 360
-            );
+            const pickup = new THREE.Mesh(isHealth ? healthPickupGeometry : ammoPickupGeometry, isHealth ? healthPickupMaterial : ammoPickupMaterial);
+            pickup.position.set((Math.random() - 0.5) * 360, 0.5, (Math.random() - 0.5) * 360);
             pickup.isHealth = isHealth;
             scene.add(pickup);
             pickups.push(pickup);
         }
 
-        // Gun model with recoil
         const gunGeometry = new THREE.Group();
         const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.7, 16), new THREE.MeshStandardMaterial({ color: 0x333333 }));
         barrel.rotation.x = Math.PI / 2;
@@ -400,32 +234,21 @@
         gunGeometry.position.set(0.2, -0.2, -0.5);
         camera.add(gunGeometry);
 
-        // Aimbot FOV visualization
         let aimbotFovMesh = null;
         const aimbotFovMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.2, side: THREE.DoubleSide });
         function updateAimbotFovMesh() {
-            if (aimbotFovMesh) {
-                scene.remove(aimbotFovMesh);
-                aimbotFovMesh.geometry.dispose();
-                aimbotFovMesh = null;
-            }
-            if ((modSettings.aimbot || modSettings.aimbotFovVisible) && controls.isLocked) {
+            if (aimbotFovMesh) scene.remove(aimbotFovMesh);
+            if (modSettings.aimbot || modSettings.aimbotFovVisible) {
                 const fovRad = modSettings.aimbotFov * Math.PI / 180;
-                const geometry = new THREE.ConeGeometry(Math.tan(fovRad / 2) * 10, 10, 32);
-                aimbotFovMesh = new THREE.Mesh(geometry, aimbotFovMaterial);
+                aimbotFovMesh = new THREE.Mesh(new THREE.ConeGeometry(Math.tan(fovRad / 2) * 10, 10, 32), aimbotFovMaterial);
                 aimbotFovMesh.rotation.x = Math.PI / 2;
                 aimbotFovMesh.position.set(0, 0, -5);
                 camera.add(aimbotFovMesh);
             }
         }
 
-        // Player stats
-        let health = 100;
-        let armor = 50;
-        let score = 0;
-        let wave = 1;
-        let enemiesLeft = 0;
-        let weapons = [
+        let health = 100, armor = 50, score = 0, wave = 1, enemiesLeft = 0, currentWeapon = 0, lastShot = 0;
+        const weapons = [
             { name: 'Pistol', ammo: 30, maxAmmo: 30, baseDamage: 10, fireRate: 500, icon: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M20 6h-4V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H4a1 1 0 0 0-1 1v3h18V7a1 1 0 0 0-1-1zM10 4h4v2h-4V4zM3 11v6a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6H3z"/></svg>' },
             { name: 'Rifle', ammo: 60, maxAmmo: 60, baseDamage: 20, fireRate: 200, icon: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M22 6h-6V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H2a1 1 0 0 0-1 1v4h22V7a1 1 0 0 0-1-1zM10 4h4v2h-4V4zM1 12v6a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2v-6H1z"/></svg>' },
             { name: 'Shotgun', ammo: 10, maxAmmo: 10, baseDamage: 15, fireRate: 1000, pellets: 5, icon: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M21 6h-5V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H3a1 1 0 0 0-1 1v5h20V7a1 1 0 0 0-1-1zM10 4h4v2h-4V4zM2 13v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6H2z"/></svg>' },
@@ -433,49 +256,43 @@
             { name: 'Rocket', ammo: 3, maxAmmo: 3, baseDamage: 100, fireRate: 2000, explosionRadius: 5, icon: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M20 6h-4V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H4a1 1 0 0 0-1 1v5h18V7a1 1 0 0 0-1-1zM10 4h4v2h-4V4zM3 13v6a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6H3zM12 16l3 3m-3-3l-3 3"/></svg>' },
             { name: 'Flamethrower', ammo: 100, maxAmmo: 100, baseDamage: 5, fireRate: 100, range: 10, icon: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M20 6h-4V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H4a1 1 0 0 0-1 1v5h18V7a1 1 0 0 0-1-1zM10 4h4v2h-4V4zM3 13v6a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6H3zM10 15c0 2 4 4 4 4"/></svg>' }
         ];
-        let currentWeapon = 0;
-        let lastShot = 0;
 
-        // Mod settings
-        let modSettings = {
-            esp: false,
-            aimbot: false,
-            aimbotFov: 90,
-            aimbotFovVisible: false,
-            tracers: false,
-            wallhack: false,
-            breadcrumbs: false
-        };
+        let modSettings = { esp: false, skeletonEsp: false, glowEsp: false, aimbot: false, aimbotFov: 90, aimbotFovVisible: false, tracers: false, breadcrumbs: false, breadcrumbsDuration: 3000 };
 
-        // Tracers setup
         const tracers = [];
         const tracerMaterialMelee = new THREE.LineBasicMaterial({ color: 0xff0000, linewidth: 3, transparent: true, opacity: 0.8 });
         const tracerMaterialShooter = new THREE.LineBasicMaterial({ color: 0x0000ff, linewidth: 3, transparent: true, opacity: 0.8 });
         const tracerMaterialHeavy = new THREE.LineBasicMaterial({ color: 0x800080, linewidth: 3, transparent: true, opacity: 0.8 });
 
-        // Breadcrumbs setup
         const breadcrumbs = [];
         const breadcrumbGeometry = new THREE.SphereGeometry(0.2, 8, 8);
         const breadcrumbMaterialMelee = new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.6 });
         const breadcrumbMaterialShooter = new THREE.MeshBasicMaterial({ color: 0x0000ff, transparent: true, opacity: 0.6 });
         const breadcrumbMaterialHeavy = new THREE.MeshBasicMaterial({ color: 0x800080, transparent: true, opacity: 0.6 });
 
-        // 2D ESP canvas
+        const glowMaterialMelee = new THREE.ShaderMaterial({
+            uniforms: { glowColor: { value: new THREE.Color(0xff0000) }, intensity: { value: 0.5 } },
+            vertexShader: `varying vec3 vNormal; void main() { vNormal = normal; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+            fragmentShader: `uniform vec3 glowColor; uniform float intensity; varying vec3 vNormal; void main() { float glow = pow(1.0 - dot(normalize(vNormal), vec3(0.0, 0.0, 1.0)), 2.0) * intensity; gl_FragColor = vec4(glowColor * glow, glow); }`,
+            transparent: true, side: THREE.DoubleSide
+        });
+        const glowMaterialShooter = glowMaterialMelee.clone();
+        glowMaterialShooter.uniforms.glowColor.value.set(0x0000ff);
+        const glowMaterialHeavy = glowMaterialMelee.clone();
+        glowMaterialHeavy.uniforms.glowColor.value.set(0x800080);
+
         const espCanvas = document.getElementById('espCanvas');
         const espCtx = espCanvas.getContext('2d');
         espCanvas.width = window.innerWidth;
         espCanvas.height = window.innerHeight;
 
-        // Menu toggle and drag
         const modMenu = document.getElementById('modMenu');
-        let isDragging = false;
-        let currentX, currentY, initialX, initialY;
+        let isDragging = false, currentX, currentY, initialX, initialY;
         modMenu.addEventListener('mousedown', (e) => {
             if (e.target === modMenu || e.target === modMenu.querySelector('h2')) {
                 isDragging = true;
                 initialX = e.clientX - currentX;
                 initialY = e.clientY - currentY;
-                modMenu.style.cursor = 'grabbing';
             }
         });
         document.addEventListener('mousemove', (e) => {
@@ -493,19 +310,13 @@
                 if (rect.bottom > window.innerHeight) modMenu.style.top = `${window.innerHeight - rect.height}px`;
             }
         });
-        document.addEventListener('mouseup', () => {
-            isDragging = false;
-            modMenu.style.cursor = 'move';
-        });
+        document.addEventListener('mouseup', () => isDragging = false);
         document.addEventListener('keydown', (e) => {
             if (e.key === ';') {
                 modMenu.classList.toggle('open');
                 controls.locked = !modMenu.classList.contains('open');
-                if (!controls.locked) {
-                    controls.unlock();
-                } else {
-                    controls.lock();
-                }
+                if (!controls.locked) controls.unlock();
+                else controls.lock();
                 if (modMenu.classList.contains('open')) {
                     modMenu.style.left = '50%';
                     modMenu.style.top = '50%';
@@ -516,80 +327,56 @@
             }
         });
 
-        // Menu controls
-        document.getElementById('espToggle').addEventListener('change', (e) => {
-            modSettings.esp = e.target.checked;
-            updateESP();
+        document.getElementById('espToggle').addEventListener('change', (e) => modSettings.esp = e.target.checked);
+        document.getElementById('skeletonEspToggle').addEventListener('change', (e) => modSettings.skeletonEsp = e.target.checked);
+        document.getElementById('glowEspToggle').addEventListener('change', (e) => { modSettings.glowEsp = e.target.checked; updateGlowESP(); });
+        document.getElementById('tracersToggle').addEventListener('change', (e) => { modSettings.tracers = e.target.checked; updateTracers(); });
+        document.getElementById('breadcrumbsToggle').addEventListener('change', (e) => modSettings.breadcrumbs = e.target.checked);
+        document.getElementById('breadcrumbsDuration').addEventListener('input', (e) => {
+            modSettings.breadcrumbsDuration = parseInt(e.target.value) * 1000;
+            document.getElementById('breadcrumbsDurationValue').textContent = e.target.value;
         });
         document.getElementById('aimbotToggle').addEventListener('change', (e) => {
             modSettings.aimbot = e.target.checked;
-            modSettings.aimbotFovVisible = e.target.checked; // Auto-enable FOV visualization
+            modSettings.aimbotFovVisible = e.target.checked;
             document.getElementById('aimbotFovToggle').checked = e.target.checked;
             updateAimbotFovMesh();
         });
         document.getElementById('aimbotFov').addEventListener('input', (e) => {
-            modSettings.aimbotFov = e.target.value;
-            document.getElementById('aimbotFovValue').textContent = e.target.value;
+            modSettings.aimbotFov = parseInt(e.target.value);
+            document.getElementById('aimbotFovValue').textContent = modSettings.aimbotFov;
             updateAimbotFovMesh();
         });
         document.getElementById('aimbotFovToggle').addEventListener('change', (e) => {
             modSettings.aimbotFovVisible = e.target.checked;
             updateAimbotFovMesh();
         });
-        document.getElementById('tracersToggle').addEventListener('change', (e) => {
-            modSettings.tracers = e.target.checked;
-            updateTracers();
-        });
-        document.getElementById('wallhackToggle').addEventListener('change', (e) => {
-            modSettings.wallhack = e.target.checked;
-            obstacles.forEach(obstacle => {
-                obstacle.material.transparent = modSettings.wallhack;
-                obstacle.material.opacity = modSettings.wallhack ? 0.3 : 1;
-            });
-        });
-        document.getElementById('breadcrumbsToggle').addEventListener('change', (e) => {
-            modSettings.breadcrumbs = e.target.checked;
-            updateBreadcrumbs();
-        });
         document.getElementById('closeMenu').addEventListener('click', () => {
             modMenu.classList.remove('open');
             controls.lock();
         });
         document.getElementById('resetMods').addEventListener('click', () => {
-            modSettings = {
-                esp: false,
-                aimbot: false,
-                aimbotFov: 90,
-                aimbotFovVisible: false,
-                tracers: false,
-                wallhack: false,
-                breadcrumbs: false
-            };
+            modSettings = { esp: false, skeletonEsp: false, glowEsp: false, aimbot: false, aimbotFov: 90, aimbotFovVisible: false, tracers: false, breadcrumbs: false, breadcrumbsDuration: 3000 };
             document.getElementById('espToggle').checked = false;
+            document.getElementById('skeletonEspToggle').checked = false;
+            document.getElementById('glowEspToggle').checked = false;
+            document.getElementById('tracersToggle').checked = false;
+            document.getElementById('breadcrumbsToggle').checked = false;
+            document.getElementById('breadcrumbsDuration').value = 3;
+            document.getElementById('breadcrumbsDurationValue').textContent = '3';
             document.getElementById('aimbotToggle').checked = false;
             document.getElementById('aimbotFov').value = 90;
             document.getElementById('aimbotFovValue').textContent = '90';
             document.getElementById('aimbotFovToggle').checked = false;
-            document.getElementById('tracersToggle').checked = false;
-            document.getElementById('wallhackToggle').checked = false;
-            document.getElementById('breadcrumbsToggle').checked = false;
-            obstacles.forEach(obstacle => {
-                obstacle.material.transparent = false;
-                obstacle.material.opacity = 1;
-            });
-            updateESP();
+            enemies.forEach(enemy => { if (!enemy.dead) enemy.material = enemy.originalMaterial; });
+            updateGlowESP();
             updateTracers();
-            updateBreadcrumbs();
             updateAimbotFovMesh();
         });
         document.querySelectorAll('.mod-section h3').forEach(header => {
-            header.addEventListener('click', () => {
-                const section = header.parentElement;
-                section.classList.toggle('collapsed');
-            });
+            header.addEventListener('click', () => header.parentElement.classList.toggle('collapsed'));
         });
 
-        // AI Enemies
         const enemies = [];
         const meleeGeometry = new THREE.BoxGeometry(1, 2, 1);
         const shooterGeometry = new THREE.BoxGeometry(1, 2, 1);
@@ -611,14 +398,11 @@
             document.getElementById('enemiesLeft').textContent = enemiesLeft;
             for (let i = 0; i < enemiesLeft; i++) {
                 const type = wave % 5 === 0 && i === 0 ? 'heavy' : Math.random() > 0.5 ? 'melee' : 'shooter';
-                const geometry = type === 'melee' ? meleeGeometry : type === 'shooter' ? shooterGeometry : heavyGeometry;
-                const material = type === 'melee' ? meleeMaterial : type === 'shooter' ? shooterMaterial : heavyMaterial;
-                const enemy = new THREE.Mesh(geometry, material);
-                enemy.position.set(
-                    (Math.random() - 0.5) * 360,
-                    type === 'heavy' ? 1.25 : 1,
-                    (Math.random() - 0.5) * 360
+                const enemy = new THREE.Mesh(
+                    type === 'melee' ? meleeGeometry : type === 'shooter' ? shooterGeometry : heavyGeometry,
+                    type === 'melee' ? meleeMaterial : type === 'shooter' ? shooterMaterial : heavyMaterial
                 );
+                enemy.position.set((Math.random() - 0.5) * 360, type === 'heavy' ? 1.25 : 1, (Math.random() - 0.5) * 360);
                 enemy.isEnemy = true;
                 enemy.type = type;
                 enemy.health = type === 'heavy' ? 200 : 50;
@@ -628,70 +412,72 @@
                 enemy.dead = false;
                 enemy.castShadow = true;
                 enemy.lastBreadcrumb = 0;
+                enemy.originalMaterial = enemy.material;
                 scene.add(enemy);
                 enemies.push(enemy);
             }
-            updateESP();
+            updateGlowESP();
             updateTracers();
-            updateBreadcrumbs();
         }
         spawnWave();
 
-        // 2D ESP
         function updateESP() {
             espCtx.clearRect(0, 0, espCanvas.width, espCanvas.height);
-            if (modSettings.esp) {
-                const vector = new THREE.Vector3();
-                const boxSize = 2;
-                enemies.forEach(enemy => {
-                    if (!enemy.dead) {
-                        vector.setFromMatrixPosition(enemy.matrixWorld);
-                        vector.project(camera);
-                        const x = (vector.x * 0.5 + 0.5) * espCanvas.width;
-                        const y = (-vector.y * 0.5 + 0.5) * espCanvas.height;
-                        if (vector.z < 1) {
+            const vector = new THREE.Vector3();
+            enemies.forEach(enemy => {
+                if (!enemy.dead) {
+                    vector.setFromMatrixPosition(enemy.matrixWorld);
+                    vector.project(camera);
+                    const x = (vector.x * 0.5 + 0.5) * espCanvas.width;
+                    const y = (-vector.y * 0.5 + 0.5) * espCanvas.height;
+                    if (vector.z < 1) {
+                        const size = 2 * 1000 / vector.z;
+                        const height = size * (enemy.type === 'heavy' ? 2.5 : 2);
+                        if (modSettings.esp) {
                             espCtx.strokeStyle = enemy.type === 'heavy' ? 'red' : 'green';
                             espCtx.lineWidth = 2;
-                            const size = boxSize * 1000 / vector.z;
-                            espCtx.strokeRect(
-                                x - size / 2,
-                                y - size,
-                                size,
-                                size * 2
-                            );
+                            espCtx.strokeRect(x - size / 2, y - height / 2, size, height);
+                        }
+                        if (modSettings.skeletonEsp) {
+                            espCtx.strokeStyle = enemy.type === 'melee' ? 'red' : enemy.type === 'shooter' ? 'blue' : 'purple';
+                            espCtx.lineWidth = 2;
+                            espCtx.beginPath();
+                            espCtx.moveTo(x, y - height / 2);
+                            espCtx.lineTo(x, y + height / 2);
+                            espCtx.stroke();
+                            espCtx.beginPath();
+                            espCtx.moveTo(x - size / 4, y - height / 4);
+                            espCtx.lineTo(x + size / 4, y - height / 4);
+                            espCtx.stroke();
                         }
                     }
-                });
-            }
-        }
-
-        // Tracers (adjusted to point to enemy center)
-        function updateTracers() {
-            tracers.forEach(tracer => {
-                if (tracer) {
-                    scene.remove(tracer);
-                    tracer.geometry.dispose();
                 }
             });
+        }
+
+        function updateGlowESP() {
+            enemies.forEach(enemy => {
+                if (!enemy.dead) enemy.material = modSettings.glowEsp
+                    ? (enemy.type === 'melee' ? glowMaterialMelee : enemy.type === 'shooter' ? glowMaterialShooter : glowMaterialHeavy)
+                    : enemy.originalMaterial;
+            });
+        }
+
+        function updateTracers() {
+            tracers.forEach(tracer => scene.remove(tracer));
             tracers.length = 0;
             if (modSettings.tracers) {
                 enemies.forEach(enemy => {
-                    if (!enemy.dead && enemy.position) {
+                    if (!enemy.dead) {
                         const crosshairPos = new THREE.Vector3();
                         camera.getWorldPosition(crosshairPos);
                         const direction = new THREE.Vector3();
                         camera.getWorldDirection(direction);
                         const startPos = crosshairPos.clone().add(direction.multiplyScalar(0.5));
                         const endPos = enemy.position.clone();
-                        endPos.y += enemy.type === 'heavy' ? 0.75 : 0.5; // Lowered to center
-                        const positions = new Float32Array([
-                            startPos.x, startPos.y, startPos.z,
-                            endPos.x, endPos.y, endPos.z
-                        ]);
-                        const geometry = new THREE.BufferGeometry();
-                        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-                        const material = enemy.type === 'melee' ? tracerMaterialMelee : enemy.type === 'shooter' ? tracerMaterialShooter : tracerMaterialHeavy;
-                        const line = new THREE.Line(geometry, material);
+                        endPos.y += enemy.type === 'heavy' ? 0.75 : 0.5;
+                        const geometry = new THREE.BufferGeometry().setFromPoints([startPos, endPos]);
+                        const line = new THREE.Line(geometry, enemy.type === 'melee' ? tracerMaterialMelee : enemy.type === 'shooter' ? tracerMaterialShooter : tracerMaterialHeavy);
                         line.isTracer = true;
                         scene.add(line);
                         tracers.push(line);
@@ -700,64 +486,49 @@
             }
         }
 
-        // Breadcrumbs (trail ESP)
         function updateBreadcrumbs() {
-            breadcrumbs.forEach(breadcrumb => {
-                if (breadcrumb) {
-                    scene.remove(breadcrumb);
-                    breadcrumb.geometry.dispose();
-                    breadcrumb.material.dispose();
-                }
-            });
-            breadcrumbs.length = 0;
             if (modSettings.breadcrumbs) {
                 enemies.forEach(enemy => {
                     if (!enemy.dead && Date.now() - enemy.lastBreadcrumb > 500) {
                         enemy.lastBreadcrumb = Date.now();
-                        const breadcrumb = new THREE.Mesh(
-                            breadcrumbGeometry,
-                            enemy.type === 'melee' ? breadcrumbMaterialMelee : enemy.type === 'shooter' ? breadcrumbMaterialShooter : breadcrumbMaterialHeavy
-                        );
+                        const breadcrumb = new THREE.Mesh(breadcrumbGeometry, enemy.type === 'melee' ? breadcrumbMaterialMelee : enemy.type === 'shooter' ? breadcrumbMaterialShooter : breadcrumbMaterialHeavy);
                         breadcrumb.position.copy(enemy.position);
                         breadcrumb.isBreadcrumb = true;
-                        breadcrumb.lifetime = 3000;
+                        breadcrumb.lifetime = modSettings.breadcrumbsDuration;
                         breadcrumb.created = Date.now();
                         scene.add(breadcrumb);
                         breadcrumbs.push(breadcrumb);
                     }
                 });
                 const now = Date.now();
-                breadcrumbs.forEach(breadcrumb => {
-                    const age = now - breadcrumb.created;
-                    breadcrumb.material.opacity = 0.6 * (1 - age / breadcrumb.lifetime);
-                });
-                breadcrumbs.filter(b => now - b.created > b.lifetime).forEach(b => {
-                    scene.remove(b);
-                    b.geometry.dispose();
-                    b.material.dispose();
-                });
-                breadcrumbs = breadcrumbs.filter(b => now - b.created <= b.lifetime);
+                breadcrumbs.forEach(b => b.material.opacity = 0.6 * (1 - (now - b.created) / b.lifetime));
+                const toRemove = breadcrumbs.filter(b => now - b.created > b.lifetime);
+                toRemove.forEach(b => { scene.remove(b); b.geometry.dispose(); b.material.dispose(); });
+                breadcrumbs.length = breadcrumbs.filter(b => now - b.created <= b.lifetime).length;
+            } else {
+                breadcrumbs.forEach(b => { scene.remove(b); b.geometry.dispose(); b.material.dispose(); });
+                breadcrumbs.length = 0;
             }
         }
 
-        // Aimbot with improved stability
         function updateAimbot() {
             if (modSettings.aimbot && controls.isLocked && keys['MouseButton2']) {
                 const playerPos = controls.getObject().position;
-                let closestEnemy = null;
-                let minAngle = Infinity;
+                let closestEnemy = null, minDist = Infinity;
                 const fovRad = modSettings.aimbotFov * Math.PI / 180;
                 const cameraDir = new THREE.Vector3();
                 controls.getObject().getWorldDirection(cameraDir);
                 enemies.forEach(enemy => {
-                    if (enemy.dead) return;
-                    const enemyPos = enemy.position.clone();
-                    enemyPos.y += enemy.type === 'heavy' ? 0.75 : 0.5;
-                    const direction = enemyPos.clone().sub(playerPos).normalize();
-                    const angle = cameraDir.angleTo(direction);
-                    if (angle <= fovRad / 2 && angle < minAngle) {
-                        minAngle = angle;
-                        closestEnemy = enemy;
+                    if (!enemy.dead) {
+                        const enemyPos = enemy.position.clone();
+                        enemyPos.y += enemy.type === 'heavy' ? 0.75 : 0.5;
+                        const direction = enemyPos.clone().sub(playerPos).normalize();
+                        const angle = cameraDir.angleTo(direction);
+                        const dist = playerPos.distanceTo(enemyPos);
+                        if (angle <= fovRad / 2 && dist < minDist) {
+                            minDist = dist;
+                            closestEnemy = enemy;
+                        }
                     }
                 });
                 if (closestEnemy) {
@@ -766,37 +537,31 @@
                     const direction = targetPos.sub(playerPos).normalize();
                     const targetYaw = Math.atan2(direction.x, direction.z);
                     const targetPitch = Math.asin(direction.y);
-                    const currentYaw = controls.getObject().rotation.y;
-                    const currentPitch = controls.getObject().rotation.x;
-                    const yawDiff = targetYaw - currentYaw;
-                    const pitchDiff = targetPitch - currentPitch;
-                    const lerpSpeed = 0.1;
-                    controls.getObject().rotation.y += yawDiff * lerpSpeed;
-                    controls.getObject().rotation.x += pitchDiff * lerpSpeed;
+                    const yawDiff = targetYaw - controls.getObject().rotation.y;
+                    const pitchDiff = targetPitch - controls.getObject().rotation.x;
+                    controls.getObject().rotation.y += yawDiff * 0.2;
+                    controls.getObject().rotation.x += pitchDiff * 0.2;
                     controls.getObject().rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, controls.getObject().rotation.x));
                 }
             }
         }
 
-        // Controls
         const keys = {};
-        document.addEventListener('keydown', (e) => { keys[e.code] = true; keys[e.key] = true; });
-        document.addEventListener('keyup', (e) => { keys[e.code] = false; keys[e.key] = false; });
-        document.addEventListener('mousedown', (e) => { keys['MouseButton' + e.button] = true; });
-        document.addEventListener('mouseup', (e) => { keys['MouseButton' + e.button] = false; });
+        document.addEventListener('keydown', (e) => { keys[e.code] = keys[e.key] = true; });
+        document.addEventListener('keyup', (e) => { keys[e.code] = keys[e.key] = false; });
+        document.addEventListener('mousedown', (e) => keys['MouseButton' + e.button] = true);
+        document.addEventListener('mouseup', (e) => keys['MouseButton' + e.button] = false);
 
-        // Weapon switching and reload
         document.addEventListener('keydown', (e) => {
             if (e.key === '1') currentWeapon = 0;
-            if (e.key === '2') currentWeapon = 1;
-            if (e.key === '3') currentWeapon = 2;
-            if (e.key === '4') currentWeapon = 3;
-            if (e.key === '5') currentWeapon = 4;
-            if (e.key === '6') currentWeapon = 5;
-            if (e.key === 'r' || e.key === 'R') {
+            else if (e.key === '2') currentWeapon = 1;
+            else if (e.key === '3') currentWeapon = 2;
+            else if (e.key === '4') currentWeapon = 3;
+            else if (e.key === '5') currentWeapon = 4;
+            else if (e.key === '6') currentWeapon = 5;
+            else if (e.key === 'r' || e.key === 'R') {
                 setTimeout(() => {
                     weapons[currentWeapon].ammo = weapons[currentWeapon].maxAmmo;
-                    console.log('Reloaded!');
                     document.getElementById('ammo').textContent = weapons[currentWeapon].ammo;
                     document.getElementById('ammoFill').style.width = `${(weapons[currentWeapon].ammo / weapons[currentWeapon].maxAmmo) * 100}%`;
                 }, 1000);
@@ -808,7 +573,6 @@
         });
         document.getElementById('weaponIcon').style.backgroundImage = `url(${weapons[currentWeapon].icon})`;
 
-        // Shooting
         document.addEventListener('mousedown', (e) => {
             if (e.button !== 0 || !controls.isLocked) return;
             const now = Date.now();
@@ -828,7 +592,6 @@
             shootBullet();
         });
 
-        // Bullet shooting
         const bullets = [];
         const bulletGeometry = new THREE.CylinderGeometry(0.02, 0.02, 0.2, 8);
         const bulletMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
@@ -843,11 +606,7 @@
                     bullet.position.y = playerHeight - 0.1;
                     const direction = new THREE.Vector3();
                     controls.getObject().getWorldDirection(direction);
-                    const spread = new THREE.Vector3(
-                        (Math.random() - 0.5) * 0.15,
-                        (Math.random() - 0.5) * 0.15,
-                        (Math.random() - 0.5) * 0.15
-                    );
+                    const spread = new THREE.Vector3((Math.random() - 0.5) * 0.15, (Math.random() - 0.5) * 0.15, (Math.random() - 0.5) * 0.15);
                     bullet.velocity = direction.clone().add(spread).normalize().multiplyScalar(1.5);
                     bullet.rotation.copy(camera.rotation);
                     bullet.damage = damage;
@@ -871,11 +630,7 @@
                 bullet.position.y = playerHeight - 0.1;
                 const direction = new THREE.Vector3();
                 controls.getObject().getWorldDirection(direction);
-                const spread = new THREE.Vector3(
-                    (Math.random() - 0.5) * 0.2,
-                    (Math.random() - 0.5) * 0.2,
-                    (Math.random() - 0.5) * 0.2
-                );
+                const spread = new THREE.Vector3((Math.random() - 0.5) * 0.2, (Math.random() - 0.5) * 0.2, (Math.random() - 0.5) * 0.2);
                 bullet.velocity = direction.clone().add(spread).normalize().multiplyScalar(0.5);
                 bullet.isFlame = true;
                 bullet.damage = damage;
@@ -893,10 +648,8 @@
                 scene.add(bullet);
                 bullets.push(bullet);
             }
-            console.log('Bang!');
         }
 
-        // Kill feed management
         function addKillFeed(type) {
             const killFeed = document.getElementById('killFeed');
             const entry = document.createElement('div');
@@ -905,21 +658,15 @@
             killFeed.insertBefore(entry, killFeed.firstChild);
             setTimeout(() => entry.classList.add('fade'), 2000);
             setTimeout(() => killFeed.removeChild(entry), 3000);
-            while (killFeed.children.length > 5) {
-                killFeed.removeChild(killFeed.lastChild);
-            }
+            while (killFeed.children.length > 5) killFeed.removeChild(killFeed.lastChild);
         }
 
-        // Enemy respawn
         function respawnEnemy(index, type) {
-            const geometry = type === 'melee' ? meleeGeometry : type === 'shooter' ? shooterGeometry : heavyGeometry;
-            const material = type === 'melee' ? meleeMaterial : type === 'shooter' ? shooterMaterial : heavyMaterial;
-            const enemy = new THREE.Mesh(geometry, material);
-            enemy.position.set(
-                (Math.random() - 0.5) * 360,
-                type === 'heavy' ? 1.25 : 1,
-                (Math.random() - 0.5) * 360
+            const enemy = new THREE.Mesh(
+                type === 'melee' ? meleeGeometry : type === 'shooter' ? shooterGeometry : heavyGeometry,
+                type === 'melee' ? meleeMaterial : type === 'shooter' ? shooterMaterial : heavyMaterial
             );
+            enemy.position.set((Math.random() - 0.5) * 360, type === 'heavy' ? 1.25 : 1, (Math.random() - 0.5) * 360);
             enemy.isEnemy = true;
             enemy.type = type;
             enemy.health = type === 'heavy' ? 200 : 50;
@@ -929,14 +676,13 @@
             enemy.dead = false;
             enemy.castShadow = true;
             enemy.lastBreadcrumb = 0;
+            enemy.originalMaterial = enemy.material;
             scene.add(enemy);
             enemies[index] = enemy;
-            updateESP();
+            updateGlowESP();
             updateTracers();
-            updateBreadcrumbs();
         }
 
-        // Update bullets
         const enemyBullets = [];
         const enemyBulletGeometry = new THREE.SphereGeometry(0.05, 8, 8);
         const enemyBulletMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
@@ -963,16 +709,9 @@
                                 addKillFeed(enemy.type);
                                 setTimeout(() => respawnEnemy(i, enemy.type), 5000);
                                 for (let j = 0; j < 20; j++) {
-                                    const particle = new THREE.Mesh(
-                                        new THREE.SphereGeometry(0.15, 8, 8),
-                                        new THREE.MeshBasicMaterial({ color: 0xff4500 })
-                                    );
+                                    const particle = new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 8), new THREE.MeshBasicMaterial({ color: 0xff4500 }));
                                     particle.position.copy(bullet.position);
-                                    particle.velocity = new THREE.Vector3(
-                                        (Math.random() - 0.5) * 0.3,
-                                        Math.random() * 0.3,
-                                        (Math.random() - 0.5) * 0.3
-                                    );
+                                    particle.velocity = new THREE.Vector3((Math.random() - 0.5) * 0.3, Math.random() * 0.3, (Math.random() - 0.5) * 0.3);
                                     scene.add(particle);
                                     bullets.push(particle);
                                 }
@@ -980,7 +719,6 @@
                         }
                     });
                     bulletsToRemove.push(index);
-                    console.log('Boom!');
                     return;
                 }
                 enemies.forEach((enemy, i) => {
@@ -999,25 +737,15 @@
                             addKillFeed(enemy.type);
                             setTimeout(() => respawnEnemy(i, enemy.type), 5000);
                             for (let j = 0; j < 10; j++) {
-                                const particle = new THREE.Mesh(
-                                    new THREE.SphereGeometry(0.1, 8, 8),
-                                    new THREE.MeshBasicMaterial({ color: 0xff0000 })
-                                );
+                                const particle = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), new THREE.MeshBasicMaterial({ color: 0xff0000 }));
                                 particle.position.copy(enemy.position);
-                                particle.velocity = new THREE.Vector3(
-                                    (Math.random() - 0.5) * 0.2,
-                                    Math.random() * 0.2,
-                                    (Math.random() - 0.5) * 0.2
-                                );
+                                particle.velocity = new THREE.Vector3((Math.random() - 0.5) * 0.2, Math.random() * 0.2, (Math.random() - 0.5) * 0.2);
                                 scene.add(particle);
                                 bullets.push(particle);
                             }
                             if (Math.random() < 0.3) {
                                 const isHealth = Math.random() > 0.5;
-                                const pickup = new THREE.Mesh(
-                                    isHealth ? healthPickupGeometry : ammoPickupGeometry,
-                                    isHealth ? healthPickupMaterial : ammoPickupMaterial
-                                );
+                                const pickup = new THREE.Mesh(isHealth ? healthPickupGeometry : ammoPickupGeometry, isHealth ? healthPickupMaterial : ammoPickupMaterial);
                                 pickup.position.copy(enemy.position);
                                 pickup.position.y = 0.5;
                                 pickup.isHealth = isHealth;
@@ -1028,10 +756,7 @@
                     }
                 });
             });
-            bulletsToRemove.reverse().forEach(index => {
-                scene.remove(bullets[index]);
-                bullets.splice(index, 1);
-            });
+            bulletsToRemove.reverse().forEach(index => { scene.remove(bullets[index]); bullets.splice(index, 1); });
             const enemyBulletsToRemove = [];
             enemyBullets.forEach((bullet, index) => {
                 bullet.position.add(bullet.velocity);
@@ -1055,10 +780,7 @@
                     enemyBulletsToRemove.push(index);
                     if (health <= 0) {
                         alert('Game Over! Score: ' + score);
-                        health = 100;
-                        armor = 50;
-                        score = 0;
-                        wave = 1;
+                        health = 100; armor = 50; score = 0; wave = 1;
                         document.getElementById('health').textContent = health;
                         document.getElementById('healthFill').style.width = '100%';
                         document.getElementById('armor').textContent = armor;
@@ -1070,13 +792,9 @@
                     }
                 }
             });
-            enemyBulletsToRemove.reverse().forEach(index => {
-                scene.remove(enemyBullets[index]);
-                enemyBullets.splice(index, 1);
-            });
+            enemyBulletsToRemove.reverse().forEach(index => { scene.remove(enemyBullets[index]); enemyBullets.splice(index, 1); });
         }
 
-        // Enemy shooting
         function updateEnemyShooting() {
             const playerPos = controls.getObject().position;
             enemies.forEach(enemy => {
@@ -1093,44 +811,27 @@
                     bullet.isRocket = enemy.type === 'heavy';
                     scene.add(bullet);
                     enemyBullets.push(bullet);
-                    console.log('Enemy shot!');
                 }
             });
         }
 
-        // Minimap
         const minimapCanvas = document.getElementById('minimapCanvas');
         const minimapCtx = minimapCanvas.getContext('2d');
-        minimapCanvas.width = 100;
-        minimapCanvas.height = 100;
+        minimapCanvas.width = minimapCanvas.height = 100;
         function updateMinimap() {
             minimapCtx.fillStyle = 'rgba(0, 0, 0, 0.8)';
             minimapCtx.fillRect(0, 0, 100, 100);
             const scale = 100 / 400;
             minimapCtx.fillStyle = 'green';
-            obstacles.forEach(obstacle => {
-                minimapCtx.fillRect(
-                    (obstacle.position.x + 200) * scale - 2,
-                    (obstacle.position.z + 200) * scale - 2,
-                    4, 4
-                );
-            });
+            obstacles.forEach(obstacle => minimapCtx.fillRect((obstacle.position.x + 200) * scale - 2, (obstacle.position.z + 200) * scale - 2, 4, 4));
             minimapCtx.fillStyle = 'red';
             enemies.forEach(enemy => {
-                if (!enemy.dead) {
-                    minimapCtx.fillRect(
-                        (enemy.position.x + 200) * scale - 2,
-                        (enemy.position.z + 200) * scale - 2,
-                        enemy.type === 'heavy' ? 6 : 4,
-                        enemy.type === 'heavy' ? 6 : 4
-                    );
-                }
+                if (!enemy.dead) minimapCtx.fillRect((enemy.position.x + 200) * scale - 2, (enemy.position.z + 200) * scale - 2, enemy.type === 'heavy' ? 6 : 4, enemy.type === 'heavy' ? 6 : 4);
             });
             minimapCtx.fillStyle = 'blue';
             minimapCtx.fillRect(50 - 2, 50 - 2, 4, 4);
         }
 
-        // Movement and collision
         const velocity = new THREE.Vector3();
         const baseSpeed = 0.2;
         let isJumping = false;
@@ -1163,10 +864,7 @@
             obstacles.forEach(obstacle => {
                 const dist = playerPos.distanceTo(obstacle.position);
                 const size = obstacle.geometry.parameters.width || obstacle.geometry.parameters.radiusTop || 1;
-                if (dist < size + 1) {
-                    const repel = playerPos.clone().sub(obstacle.position).normalize().multiplyScalar(0.2);
-                    controls.getObject().position.add(repel);
-                }
+                if (dist < size + 1) controls.getObject().position.add(playerPos.clone().sub(obstacle.position).normalize().multiplyScalar(0.2));
             });
             const pickupsToRemove = [];
             pickups.forEach((pickup, index) => {
@@ -1181,35 +879,23 @@
                         document.getElementById('ammoFill').style.width = `${(weapons[currentWeapon].ammo / weapons[currentWeapon].maxAmmo) * 100}%`;
                     }
                     pickupsToRemove.push(index);
-                    console.log(pickup.isHealth ? 'Health pickup!' : 'Ammo pickup!');
                     setTimeout(() => {
                         const isHealth = Math.random() > 0.5;
-                        const pickup = new THREE.Mesh(
-                            isHealth ? healthPickupGeometry : ammoPickupGeometry,
-                            isHealth ? healthPickupMaterial : ammoPickupMaterial
-                        );
-                        pickup.position.set(
-                            (Math.random() - 0.5) * 360,
-                            0.5,
-                            (Math.random() - 0.5) * 360
-                        );
+                        const pickup = new THREE.Mesh(isHealth ? healthPickupGeometry : ammoPickupGeometry, isHealth ? healthPickupMaterial : ammoPickupMaterial);
+                        pickup.position.set((Math.random() - 0.5) * 360, 0.5, (Math.random() - 0.5) * 360);
                         pickup.isHealth = isHealth;
                         scene.add(pickup);
                         pickups.push(pickup);
                     }, 10000);
                 }
             });
-            pickupsToRemove.reverse().forEach(index => {
-                scene.remove(pickups[index]);
-                pickups.splice(index, 1);
-            });
+            pickupsToRemove.reverse().forEach(index => { scene.remove(pickups[index]); pickups.splice(index, 1); });
             if (playerPos.x > 200) playerPos.x = 200;
             if (playerPos.x < -200) playerPos.x = -200;
             if (playerPos.z > 200) playerPos.z = 200;
             if (playerPos.z < -200) playerPos.z = -200;
         }
 
-        // AI movement
         function updateAI() {
             const playerPos = controls.getObject().position;
             enemies.forEach(enemy => {
@@ -1229,10 +915,7 @@
                     }
                     if (health <= 0) {
                         alert('Game Over! Score: ' + score);
-                        health = 100;
-                        armor = 50;
-                        score = 0;
-                        wave = 1;
+                        health = 100; armor = 50; score = 0; wave = 1;
                         document.getElementById('health').textContent = health;
                         document.getElementById('healthFill').style.width = '100%';
                         document.getElementById('armor').textContent = armor;
@@ -1243,8 +926,7 @@
                         spawnWave();
                     }
                 } else if (distToPlayer < 30) {
-                    let nearestObstacle = null;
-                    let minDist = Infinity;
+                    let nearestObstacle = null, minDist = Infinity;
                     obstacles.forEach(obstacle => {
                         const dist = enemy.position.distanceTo(obstacle.position);
                         if (dist < minDist && dist > 3) {
@@ -1253,37 +935,23 @@
                         }
                     });
                     if (nearestObstacle && distToPlayer > 10 && enemy.type !== 'melee') {
-                        const direction = nearestObstacle.position.clone().sub(enemy.position).normalize();
-                        enemy.position.add(direction.multiplyScalar(enemy.speed));
+                        enemy.position.add(nearestObstacle.position.clone().sub(enemy.position).normalize().multiplyScalar(enemy.speed));
                     } else {
-                        const direction = playerPos.clone().sub(enemy.position).normalize();
-                        enemy.position.add(direction.multiplyScalar(enemy.speed));
+                        enemy.position.add(playerPos.clone().sub(enemy.position).normalize().multiplyScalar(enemy.speed));
                     }
                 } else {
                     const distToWaypoint = enemy.position.distanceTo(enemy.targetWaypoint);
-                    if (distToWaypoint < 5) {
-                        enemy.targetWaypoint = waypoints[Math.floor(Math.random() * waypoints.length)];
-                    }
-                    const direction = enemy.targetWaypoint.clone().sub(enemy.position).normalize();
-                    enemy.position.add(direction.multiplyScalar(enemy.speed));
+                    if (distToWaypoint < 5) enemy.targetWaypoint = waypoints[Math.floor(Math.random() * waypoints.length)];
+                    enemy.position.add(enemy.targetWaypoint.clone().sub(enemy.position).normalize().multiplyScalar(enemy.speed));
                 }
                 obstacles.forEach(obstacle => {
                     const dist = enemy.position.distanceTo(obstacle.position);
                     const size = obstacle.geometry.parameters.width || obstacle.geometry.parameters.radiusTop || 1;
-                    if (dist < size + 1) {
-                        const repel = enemy.position.clone().sub(obstacle.position).normalize().multiplyScalar(0.2);
-                        enemy.position.add(repel);
-                    }
+                    if (dist < size + 1) enemy.position.add(enemy.position.clone().sub(obstacle.position).normalize().multiplyScalar(0.2));
                 });
             });
-            if (enemiesLeft === 0) {
-                wave++;
-                document.getElementById('wave').textContent = wave;
-                spawnWave();
-            }
         }
 
-        // Animation loop
         function animate() {
             requestAnimationFrame(animate);
             updatePlayer();
@@ -1291,22 +959,18 @@
             updateBullets();
             updateEnemyShooting();
             updateMinimap();
-            updateAimbot();
             updateESP();
             updateTracers();
             updateBreadcrumbs();
+            updateAimbot();
             renderer.render(scene, camera);
+            if (enemiesLeft <= 0) {
+                wave++;
+                document.getElementById('wave').textContent = wave;
+                spawnWave();
+            }
         }
         animate();
-
-        // Window resize handler
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            espCanvas.width = window.innerWidth;
-            espCanvas.height = window.innerHeight;
-        });
     </script>
 </body>
 </html>
