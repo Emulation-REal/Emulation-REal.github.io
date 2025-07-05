@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html>wa
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -406,7 +406,11 @@
         ];
         function spawnWave() {
             enemies.length = 0;
-            scene.children = scene.children.filter(child => !child.isEnemy && !child.isTracer && !child.isBreadcrumb && !child.isParticle);
+            scene.children = scene.children.filter(child => !child.isEnemy && (!child.isTracer || !modSettings.tracers) && !child.isBreadcrumb && !child.isParticle);
+            if (!modSettings.tracers) {
+                tracers.forEach(tracer => scene.remove(tracer));
+                tracers.length = 0;
+            }
             breadcrumbs.length = 0;
             particleAuras.length = 0;
             enemiesLeft = wave * 5;
@@ -532,27 +536,46 @@
         }
 
         function updateTracers() {
-            tracers.forEach(tracer => scene.remove(tracer));
-            tracers.length = 0;
             if (modSettings.tracers) {
-                enemies.forEach(enemy => {
-                    if (!enemy.dead) {
-                        const crosshairPos = new THREE.Vector3();
-                        camera.getWorldPosition(crosshairPos);
-                        const direction = new THREE.Vector3();
-                        camera.getWorldDirection(direction);
-                        const startPos = crosshairPos.clone().add(direction.multiplyScalar(0.5));
-                        const endPos = enemy.position.clone();
-                        endPos.y += enemy.type === 'heavy' ? 0.75 : 0.5;
-                        const geometry = new THREE.BufferGeometry().setFromPoints([startPos, endPos]);
-                        const line = new THREE.Line(geometry, 
-                            enemy.type === 'melee' ? tracerMaterialMelee : 
-                            enemy.type === 'shooter' ? tracerMaterialShooter : tracerMaterialHeavy);
-                        line.isTracer = true;
-                        scene.add(line);
-                        tracers.push(line);
+                const crosshairPos = new THREE.Vector3();
+                camera.getWorldPosition(crosshairPos);
+                const direction = new THREE.Vector3();
+                camera.getWorldDirection(direction);
+                const startPos = crosshairPos.clone().add(direction.multiplyScalar(0.5));
+                
+                // Remove tracers for dead enemies or those no longer in the scene
+                const tracersToRemove = [];
+                tracers.forEach((tracer, index) => {
+                    if (!tracer.enemy || tracer.enemy.dead || !scene.children.includes(tracer.enemy)) {
+                        scene.remove(tracer);
+                        tracersToRemove.push(index);
                     }
                 });
+                tracersToRemove.reverse().forEach(index => tracers.splice(index, 1));
+
+                // Update or create tracers for living enemies
+                enemies.forEach(enemy => {
+                    if (!enemy.dead) {
+                        let tracer = tracers.find(t => t.enemy === enemy);
+                        if (!tracer) {
+                            const geometry = new THREE.BufferGeometry();
+                            const line = new THREE.Line(geometry, 
+                                enemy.type === 'melee' ? tracerMaterialMelee : 
+                                enemy.type === 'shooter' ? tracerMaterialShooter : tracerMaterialHeavy);
+                            line.isTracer = true;
+                            line.enemy = enemy;
+                            scene.add(line);
+                            tracers.push(line);
+                            tracer = line;
+                        }
+                        const endPos = enemy.position.clone();
+                        endPos.y += enemy.type === 'heavy' ? 0.75 : 0.5;
+                        tracer.geometry.setFromPoints([startPos, endPos]);
+                    }
+                });
+            } else {
+                tracers.forEach(tracer => scene.remove(tracer));
+                tracers.length = 0;
             }
         }
 
@@ -935,10 +958,9 @@
         let isJumping = false;
         const clock = new THREE.Clock();
         function updatePlayer() {
-            if (!controls.isLocked) return;
             const delta = clock.getDelta();
-            velocity.x *= 0.8;
-            velocity.z *= 0.8;
+            velocity.x *= 0.9; // Reduced damping for smoother movement
+            velocity.z *= 0.9;
             let moveSpeed = keys['ShiftLeft'] ? baseSpeed * 1.5 : baseSpeed;
             playerHeight = keys['ControlLeft'] ? 1.0 : 1.6;
             if (keys['Space'] && !isJumping) {
@@ -953,21 +975,38 @@
                 isJumping = false;
             }
             camera.position.y += velocity.y;
-            if (keys['KeyW']) velocity.z += moveSpeed;
-            if (keys['KeyS']) velocity.z -= moveSpeed;
+            if (keys['KeyW']) velocity.z -= moveSpeed; // Note: Forward is negative Z in PointerLockControls
+            if (keys['KeyS']) velocity.z += moveSpeed;
             if (keys['KeyA']) velocity.x -= moveSpeed;
             if (keys['KeyD']) velocity.x += moveSpeed;
-            controls.moveRight(velocity.x * delta * 50);
-            controls.moveForward(velocity.z * delta * 50);
-            const playerPos = controls.getObject().position;
-            obstacles.forEach(obstacle => {
-                const dist = playerPos.distanceTo(obstacle.position);
-                const size = obstacle.geometry.parameters.width || obstacle.geometry.parameters.radiusTop || 1;
-                if (dist < size + 1) controls.getObject().position.add(playerPos.clone().sub(obstacle.position).normalize().multiplyScalar(0.1));
-            });
+
+            if (controls.isLocked) {
+                const prevPos = controls.getObject().position.clone();
+                controls.moveRight(velocity.x * delta * 50);
+                controls.moveForward(velocity.z * delta * 50);
+                const newPos = controls.getObject().position;
+                // Fallback direct position update if movement is blocked
+                if (newPos.distanceTo(prevPos) < 0.01 && (velocity.x !== 0 || velocity.z !== 0)) {
+                    newPos.x += velocity.x * delta * 10;
+                    newPos.z += velocity.z * delta * 10;
+                }
+                const playerPos = newPos;
+                obstacles.forEach(obstacle => {
+                    const dist = playerPos.distanceTo(obstacle.position);
+                    const size = obstacle.geometry.parameters.width || obstacle.geometry.parameters.radiusTop || 1;
+                    if (dist < size + 1) {
+                        const pushback = playerPos.clone().sub(obstacle.position).normalize().multiplyScalar(0.05); // Reduced pushback
+                        playerPos.add(pushback);
+                    }
+                });
+                // Clamp player position to map bounds
+                playerPos.x = Math.max(-200, Math.min(200, playerPos.x));
+                playerPos.z = Math.max(-200, Math.min(200, playerPos.z));
+            }
+
             const pickupsToRemove = [];
             pickups.forEach((pickup, index) => {
-                if (playerPos.distanceTo(pickup.position) < 1.5) {
+                if (controls.getObject().position.distanceTo(pickup.position) < 1.5) {
                     if (pickup.isHealth) {
                         health = Math.min(100, health + 20);
                         document.getElementById('health').textContent = Math.round(health);
@@ -989,10 +1028,6 @@
                 }
             });
             pickupsToRemove.reverse().forEach(index => { scene.remove(pickups[index]); pickups.splice(index, 1); });
-            if (playerPos.x > 200) playerPos.x = 200;
-            if (playerPos.x < -200) playerPos.x = -200;
-            if (playerPos.z > 200) playerPos.z = 200;
-            if (playerPos.z < -200) playerPos.z = -200;
         }
 
         function updateAI() {
@@ -1025,6 +1060,9 @@
         function animate() {
             requestAnimationFrame(animate);
             const delta = clock.getDelta();
+            if (!controls.isLocked && !modMenu.classList.contains('open')) {
+                controls.lock();
+            }
             updatePlayer();
             updateAI();
             updateBullets();
@@ -1034,6 +1072,7 @@
             updateAimbot(delta);
             updateParticleAuras(delta);
             updateBreadcrumbs();
+            updateTracers(); // Moved here to ensure consistent updates
             if (enemiesLeft === 0) {
                 wave++;
                 document.getElementById('wave').textContent = wave;
